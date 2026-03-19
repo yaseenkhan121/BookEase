@@ -1,13 +1,12 @@
 #!/bin/bash
 
-echo "==> SCRIPT VERSION: 7.0 (The Final Polish: STRIP \r)"
+echo "==> SCRIPT VERSION: 8.0 (Trim everything with PHP)"
 echo "==> Preparing application..."
 
-# 0. Strip ALL carriage returns from the entire environment to be safe
-# This handles the "Invalid URI" and "database does not exist" errors caused by Windows line endings
+# 0. Strip ALL carriage returns and whitespace from core variables
 echo "==> Sanitizing environment variables..."
-export DATABASE_URL=$(echo "$DATABASE_URL" | tr -d '\r')
-export APP_URL=$(echo "$APP_URL" | tr -d '\r')
+export DATABASE_URL=$(echo "$DATABASE_URL" | tr -d '\r' | xargs)
+export APP_URL=$(echo "$APP_URL" | tr -d '\r' | xargs)
 
 # 1. Unset ANY existing DB variables to prevent contamination
 echo "==> Clearing existing DB environment variables..."
@@ -25,17 +24,21 @@ echo "==> Creating fresh .env file..."
 # Grab env vars, exclude DB ones, and STRIP \r from everything
 env | grep -v '^DB_' | grep -E '^(APP_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|CACHE_|SESSION_|LOG_|FILESYSTEM_|VITE_)' | tr -d '\r' > /var/www/html/.env
 
-# 4. Use PHP to parse DATABASE_URL (Now sanitized)
+# 4. Use PHP to parse and TRIM DATABASE_URL components (Most reliable)
 if [ -n "$DATABASE_URL" ]; then
     echo "==> Parsing DATABASE_URL with PHP..."
     
-    DB_HOST=$(php -r "echo parse_url(getenv('DATABASE_URL'), PHP_URL_HOST);")
-    DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); echo \$p ? \$p : '5432';")
-    DB_DATABASE=$(php -r "echo ltrim(parse_url(getenv('DATABASE_URL'), PHP_URL_PATH), '/');")
-    DB_USERNAME=$(php -r "echo parse_url(getenv('DATABASE_URL'), PHP_URL_USER);")
-    DB_PASSWORD=$(php -r "echo parse_url(getenv('DATABASE_URL'), PHP_URL_PASS);")
+    DB_HOST=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_HOST));")
+    DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); echo \$p ? trim(\$p) : '5432';")
+    # Path parsing: ltrim the leading slash then trim any trailing junk
+    DB_DATABASE=$(php -r "\$path = parse_url(getenv('DATABASE_URL'), PHP_URL_PATH); echo trim(ltrim(\$path, '/'));")
+    DB_USERNAME=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_USER));")
+    DB_PASSWORD=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_PASS));")
 
-    # Force write to .env (Stripped again just in case)
+    # Extra safety: strip any lingering non-printable chars from DB_DATABASE
+    DB_DATABASE=$(echo "$DB_DATABASE" | tr -cd '[:print:]')
+
+    # Force write to .env
     {
         echo "DB_CONNECTION=pgsql"
         echo "DB_HOST=$DB_HOST"
@@ -43,8 +46,7 @@ if [ -n "$DATABASE_URL" ]; then
         echo "DB_DATABASE=$DB_DATABASE"
         echo "DB_USERNAME=$DB_USERNAME"
         echo "DB_PASSWORD=$DB_PASSWORD"
-        echo "DATABASE_URL=$DATABASE_URL"
-    } | tr -d '\r' >> /var/www/html/.env
+    } >> /var/www/html/.env
 
     # Export for current process
     export DB_CONNECTION=pgsql
@@ -54,12 +56,8 @@ if [ -n "$DATABASE_URL" ]; then
     export DB_USERNAME=$DB_USERNAME
     export DB_PASSWORD=$DB_PASSWORD
 
-    echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE"
+    echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE (Length: ${#DB_DATABASE})"
 fi
-
-# Print .env for debugging (masking sensitive info)
-echo "==> Final .env configuration (sanitized):"
-cat /var/www/html/.env | sed -E 's/(PASSWORD|SECRET|KEY)=.*$/\1=********/'
 
 # 5. Artisan tasks
 echo "==> Running Artisan maintenance tasks..."
