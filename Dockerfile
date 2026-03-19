@@ -16,13 +16,16 @@ RUN apt-get update && apt-get install -y \
     curl \
     nginx \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd zip pdo pdo_pgsql
+    && docker-php-ext-install gd zip pdo pdo_pgsql pdo_mysql
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy project files
 COPY . .
+
+# Create .env file for build process
+RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
