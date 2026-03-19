@@ -11,30 +11,20 @@ rm -f /var/www/html/storage/framework/sessions/*
 
 # 2. ALWAYS create .env file from environment variables (overwrite any existing)
 echo "==> Creating .env file from environment variables..."
-env | grep -E '^(APP_|DB_|DATABASE_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|CACHE_|SESSION_|LOG_|FILESYSTEM_|VITE_)' | while IFS='=' read -r key value; do
+# Filter out current DB_ variables to avoid duplicates when we parse DATABASE_URL
+env | grep -E '^(APP_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|CACHE_|SESSION_|LOG_|FILESYSTEM_|VITE_)' | while IFS='=' read -r key value; do
     echo "$key=$value"
 done > /var/www/html/.env
 
-# 3. Parse DATABASE_URL if present and set individual DB_ variables
+# 3. Parse DATABASE_URL if present using PHP (most reliable way)
 if [ -n "$DATABASE_URL" ]; then
-    echo "==> Parsing DATABASE_URL..."
-    # Normalize: replace postgresql:// with postgres:// for consistent parsing
-    NORMALIZED_URL=$(echo "$DATABASE_URL" | sed 's|^postgresql://|postgres://|')
-
-    # Extract components
-    DB_USERNAME=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://||' -e 's|:.*||')
-    DB_PASSWORD=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://[^:]*:||' -e 's|@.*||')
-    DB_DATABASE=$(echo "$NORMALIZED_URL" | sed -e 's|^.*/||')
+    echo "==> Parsing DATABASE_URL with PHP..."
     
-    # Extract Host and Port
-    HOST_PORT=$(echo "$NORMALIZED_URL" | sed -e 's|^.*@||' -e 's|/.*||')
-    if [[ "$HOST_PORT" == *":"* ]]; then
-        DB_HOST=$(echo "$HOST_PORT" | cut -d: -f1)
-        DB_PORT=$(echo "$HOST_PORT" | cut -d: -f2)
-    else
-        DB_HOST="$HOST_PORT"
-        DB_PORT=5432
-    fi
+    DB_HOST=$(php -r "echo parse_url(getenv('DATABASE_URL'), PHP_URL_HOST);")
+    DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); echo \$p ? \$p : '5432';")
+    DB_DATABASE=$(php -r "echo ltrim(parse_url(getenv('DATABASE_URL'), PHP_URL_PATH), '/');")
+    DB_USERNAME=$(php -r "echo parse_url(getenv('DATABASE_URL'), PHP_URL_USER);")
+    DB_PASSWORD=$(php -r "echo parse_url(getenv('DATABASE_URL'), PHP_URL_PASS);")
 
     # Write DB variables to .env
     echo "DB_CONNECTION=pgsql" >> /var/www/html/.env
@@ -43,6 +33,7 @@ if [ -n "$DATABASE_URL" ]; then
     echo "DB_DATABASE=$DB_DATABASE" >> /var/www/html/.env
     echo "DB_USERNAME=$DB_USERNAME" >> /var/www/html/.env
     echo "DB_PASSWORD=$DB_PASSWORD" >> /var/www/html/.env
+    echo "DATABASE_URL=$DATABASE_URL" >> /var/www/html/.env
 
     echo "==> Parsed Connection: Host=$DB_HOST Port=$DB_PORT Database=$DB_DATABASE User=$DB_USERNAME"
 fi
