@@ -2,13 +2,20 @@
 
 echo "==> Preparing application..."
 
-# ALWAYS create .env file from environment variables (overwrite any existing)
+# 1. Clean up ANY existing caches first (before running any php commands)
+echo "==> Cleaning stale bootstrap caches..."
+rm -f /var/www/html/bootstrap/cache/*.php
+rm -rf /var/www/html/storage/framework/cache/data/*
+rm -f /var/www/html/storage/framework/views/*.php
+rm -f /var/www/html/storage/framework/sessions/*
+
+# 2. ALWAYS create .env file from environment variables (overwrite any existing)
 echo "==> Creating .env file from environment variables..."
 env | grep -E '^(APP_|DB_|DATABASE_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|CACHE_|SESSION_|LOG_|FILESYSTEM_|VITE_)' | while IFS='=' read -r key value; do
     echo "$key=$value"
 done > /var/www/html/.env
 
-# Parse DATABASE_URL if present and set individual DB_ variables
+# 3. Parse DATABASE_URL if present and set individual DB_ variables
 if [ -n "$DATABASE_URL" ]; then
     echo "==> Parsing DATABASE_URL..."
     # Normalize: replace postgresql:// with postgres:// for consistent parsing
@@ -35,32 +42,28 @@ fi
 echo "==> .env file contents:"
 cat /var/www/html/.env
 
-# Forcefully remove stale Laravel discovery caches
-echo "==> Removing stale bootstrap caches..."
-rm -f /var/www/html/bootstrap/cache/*.php
+# 4. Clear any old cached config via artisan (now safe to run)
+echo "==> Running Artisan maintenance tasks..."
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
 
-# Clear any old cached config
-echo "==> Clearing cached config..."
-php artisan config:clear 2>/dev/null || true
-php artisan cache:clear 2>/dev/null || true
-php artisan route:clear 2>/dev/null || true
-php artisan view:clear 2>/dev/null || true
-
-# Set storage link
+# 5. Set storage link
 echo "==> Creating storage link..."
 php artisan storage:link --force 2>/dev/null || true
 
-# Run migrations
+# 6. Run migrations
 echo "==> Running migrations..."
 php artisan migrate --force 2>&1 || echo "Migration warning, continuing..."
 
-# Fix permissions after migration
+# 7. Fix permissions after migration
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Start PHP-FPM in background
+# 8. Start PHP-FPM in background
 echo "==> Starting PHP-FPM..."
 php-fpm -D
 
-# Start Nginx in foreground
+# 9. Start Nginx in foreground
 echo "==> Starting Nginx..."
 nginx -g "daemon off;"
