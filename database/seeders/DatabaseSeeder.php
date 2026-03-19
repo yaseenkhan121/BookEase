@@ -23,10 +23,10 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@bookease.com'],
             [
                 'name'          => 'BookEase Admin',
-                'password'      => Hash::make('Admin@2026'),
+                'password'      => 'Admin@2026', // Plain string because User model has 'hashed' cast
                 'role'          => User::ROLE_ADMIN,
                 'status'        => User::STATUS_ACTIVE,
-                'is_active'     => true, // Backwards compatibility
+                'is_active'     => true,
             ]
         );
     }
