@@ -22,9 +22,11 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@bookease.com'],
             [
-                'name'     => 'BookEase Admin',
-                'password' => Hash::make('Admin@2026'), // Strong default for initial setup
-                'role'     => 'admin',
+                'name'          => 'BookEase Admin',
+                'password'      => Hash::make('Admin@2026'),
+                'role'          => User::ROLE_ADMIN,
+                'status'        => User::STATUS_ACTIVE,
+                'is_active'     => true, // Backwards compatibility
             ]
         );
     }
