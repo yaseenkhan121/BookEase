@@ -13,12 +13,15 @@ fi
 # Parse DATABASE_URL if present and set individual DB_ variables
 if [ -n "$DATABASE_URL" ]; then
     echo "==> Parsing DATABASE_URL..."
+    # Normalize: replace postgresql:// with postgres:// for consistent parsing
+    NORMALIZED_URL=$(echo "$DATABASE_URL" | sed 's|^postgresql://|postgres://|')
+
     export DB_CONNECTION=pgsql
-    export DB_HOST=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/[^:]*:[^@]*@//' -e 's/:[0-9]*\/.*//')
-    export DB_PORT=$(echo $DATABASE_URL | sed -e 's/^.*@[^:]*://' -e 's/\/.*//')
-    export DB_DATABASE=$(echo $DATABASE_URL | sed -e 's/^.*\///')
-    export DB_USERNAME=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\///' -e 's/:.*//')
-    export DB_PASSWORD=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/[^:]*://' -e 's/@.*//')
+    export DB_HOST=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://[^@]*@||' -e 's|:[0-9]*/.*||' -e 's|/.*||')
+    export DB_PORT=$(echo "$NORMALIZED_URL" | sed -e 's|^.*@[^:]*:||' -e 's|/.*||')
+    export DB_DATABASE=$(echo "$NORMALIZED_URL" | sed -e 's|^.*/||')
+    export DB_USERNAME=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://||' -e 's|:.*||')
+    export DB_PASSWORD=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://[^:]*:||' -e 's|@.*||')
 
     # Also write these to .env
     echo "DB_CONNECTION=pgsql" >> /var/www/html/.env
@@ -27,6 +30,9 @@ if [ -n "$DATABASE_URL" ]; then
     echo "DB_DATABASE=$DB_DATABASE" >> /var/www/html/.env
     echo "DB_USERNAME=$DB_USERNAME" >> /var/www/html/.env
     echo "DB_PASSWORD=$DB_PASSWORD" >> /var/www/html/.env
+    echo "DATABASE_URL=$DATABASE_URL" >> /var/www/html/.env
+
+    echo "==> DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_DATABASE=$DB_DATABASE DB_USERNAME=$DB_USERNAME"
 fi
 
 # Set storage link
