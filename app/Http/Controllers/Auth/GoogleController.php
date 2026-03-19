@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Exception;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class GoogleController extends Controller
 {
@@ -31,12 +32,13 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
+            Log::info('Google OAuth: Attempting login for ' . $googleUser->email);
             
             // 1. Check if a user with this Google ID already exists
             $user = User::where('google_id', $googleUser->id)->first();
 
             if ($user) {
-                // Update profile image if changed
+                Log::info('Google OAuth: User found by Google ID');
                 $user->update(['profile_image' => $googleUser->avatar]);
                 Auth::login($user);
                 return $this->redirectBasedOnRole($user);
@@ -46,35 +48,40 @@ class GoogleController extends Controller
             $existingUser = User::where('email', $googleUser->email)->first();
 
             if ($existingUser) {
+                Log::info('Google OAuth: Existing user found by email, linking account');
                 $existingUser->update([
                     'google_id' => $googleUser->id,
                     'provider' => 'google',
                     'profile_image' => $googleUser->avatar,
                     'email_verified_at' => $existingUser->email_verified_at ?? now(),
+                    'status' => $existingUser->status ?? User::STATUS_ACTIVE,
                 ]);
                 Auth::login($existingUser);
                 return $this->redirectBasedOnRole($existingUser);
             }
 
             // 3. Create a new user if they don't exist
+            Log::info('Google OAuth: Creating new user');
             $newUser = User::create([
                 'name' => $googleUser->name,
                 'email' => $googleUser->email,
                 'google_id' => $googleUser->id,
                 'provider' => 'google',
                 'profile_image' => $googleUser->avatar,
-                'role' => 'customer', // Default role for redirection to /auth/google/role-selection
+                'role' => User::ROLE_CUSTOMER,
+                'status' => User::STATUS_ACTIVE,
                 'email_verified_at' => now(),
-                'password' => null, // Passwordless account
+                'password' => null,
             ]);
 
             Auth::login($newUser);
 
-            // Redirect to role selection for completely new OAuth users
             return redirect()->route('google.role-selection');
 
         } catch (Exception $e) {
-            return redirect()->route('login')->with('error', 'Something went wrong during Google sign-in. Please try again.');
+            Log::error('Google OAuth Error: ' . $e->getMessage());
+            Log::error('Trace: ' . $e->getTraceAsString());
+            return redirect()->route('login')->with('error', 'Google sign-in failed: ' . $e->getMessage());
         }
     }
 
