@@ -21,7 +21,7 @@ class GoogleController extends Controller
             return redirect()->route('login')->with('error', 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.');
         }
 
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     /**
@@ -30,7 +30,7 @@ class GoogleController extends Controller
     public function handleGoogleCallback()
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')->stateless()->user();
             
             // 1. Check if a user with this Google ID already exists
             $user = User::where('google_id', $googleUser->id)->first();
