@@ -28,10 +28,12 @@ COPY . .
 # Fix Windows line endings for all shell scripts
 RUN find . -name "*.sh" -exec dos2unix {} \;
 
-# Create .env file if not present
-RUN if [ ! -f .env ]; then echo "APP_KEY=" > .env; fi
+# Create Laravel directory structure and set permissions before install
+RUN mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache/data storage/logs
+RUN chmod -R 775 bootstrap/cache storage
+RUN chown -R www-data:www-data bootstrap/cache storage
 
-# Install PHP dependencies (let post-install scripts run for proper auto-discovery)
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Install Node.js and build assets
