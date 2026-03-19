@@ -21,11 +21,20 @@ if [ -n "$DATABASE_URL" ]; then
     # Normalize: replace postgresql:// with postgres:// for consistent parsing
     NORMALIZED_URL=$(echo "$DATABASE_URL" | sed 's|^postgresql://|postgres://|')
 
-    DB_HOST=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://[^@]*@||' -e 's|:[0-9]*/.*||' -e 's|/.*||')
-    DB_PORT=$(echo "$NORMALIZED_URL" | sed -e 's|^.*@[^:]*:||' -e 's|/.*||')
-    DB_DATABASE=$(echo "$NORMALIZED_URL" | sed -e 's|^.*/||')
+    # Extract components
     DB_USERNAME=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://||' -e 's|:.*||')
     DB_PASSWORD=$(echo "$NORMALIZED_URL" | sed -e 's|^postgres://[^:]*:||' -e 's|@.*||')
+    DB_DATABASE=$(echo "$NORMALIZED_URL" | sed -e 's|^.*/||')
+    
+    # Extract Host and Port
+    HOST_PORT=$(echo "$NORMALIZED_URL" | sed -e 's|^.*@||' -e 's|/.*||')
+    if [[ "$HOST_PORT" == *":"* ]]; then
+        DB_HOST=$(echo "$HOST_PORT" | cut -d: -f1)
+        DB_PORT=$(echo "$HOST_PORT" | cut -d: -f2)
+    else
+        DB_HOST="$HOST_PORT"
+        DB_PORT=5432
+    fi
 
     # Write DB variables to .env
     echo "DB_CONNECTION=pgsql" >> /var/www/html/.env
@@ -35,12 +44,12 @@ if [ -n "$DATABASE_URL" ]; then
     echo "DB_USERNAME=$DB_USERNAME" >> /var/www/html/.env
     echo "DB_PASSWORD=$DB_PASSWORD" >> /var/www/html/.env
 
-    echo "==> DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_DATABASE=$DB_DATABASE DB_USERNAME=$DB_USERNAME"
+    echo "==> Parsed Connection: Host=$DB_HOST Port=$DB_PORT Database=$DB_DATABASE User=$DB_USERNAME"
 fi
 
-# Print .env for debugging
-echo "==> .env file contents:"
-cat /var/www/html/.env
+# Print .env for debugging (masking password)
+echo "==> .env file contents (sanitized):"
+cat /var/www/html/.env | sed 's/PASSWORD=.*$/PASSWORD=********/'
 
 # 4. Clear any old cached config via artisan (now safe to run)
 echo "==> Running Artisan maintenance tasks..."
