@@ -58,9 +58,12 @@ php artisan view:clear
 echo "==> Creating storage link..."
 php artisan storage:link --force 2>/dev/null || true
 
-# 7. Run migrations
+# 7. Run migrations and seeders
 echo "==> Running migrations..."
 php artisan migrate --force 2>&1 || echo "Migration warning: check database logs."
+
+echo "==> Running seeders..."
+php artisan db:seed --force 2>&1 || echo "Seeding warning: check database logs."
 
 # 8. Fix permissions
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
