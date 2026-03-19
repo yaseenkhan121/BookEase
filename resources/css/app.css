@@ -1,0 +1,311 @@
+/* 1. Imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import './dashboard.css';
+@import './components/calendar.css';
+@import './components/charts.css';
+
+/* 2. Global Variables */
+:root {
+    /* Brand Colors */
+    --primary-color: #1F7A63;
+    --primary-hover: #165b4a;
+    --primary-soft: rgba(31, 122, 99, 0.1);
+    --primary-gradient: linear-gradient(135deg, #1F7A63, #2DAA84);
+    --primary-glow: 0 4px 15px rgba(31, 122, 99, 0.25);
+
+    /* System Colors */
+    --secondary-color: #64748b;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+
+    /* Grayscale & Text */
+    --text-main: #111827;
+    --text-muted: #6B7280;
+    --text-label: #374151;
+    --bg-light: #F9FAFB;
+    --border-color: #E5E7EB;
+    --white: #ffffff;
+
+    /* Spacing & Radius */
+    --card-padding: 32px;
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+        0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.05),
+        0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+/* 3. Base Resets */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 4. Common Utility Classes */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+    background-color: var(--white);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+.btn-outline:hover {
+    background-color: var(--bg-light);
+    border-color: var(--secondary-color);
+}
+
+/* Status Pills (Senior Refinement) */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-pending {
+    background: var(--warning-soft);
+    color: #92400e;
+}
+
+.status-approved {
+    background: var(--success-soft);
+    color: #065f46;
+}
+
+.status-rejected {
+    background: var(--danger-soft);
+    color: #991b1b;
+}
+
+.status-completed {
+    background: var(--info-soft);
+    color: #1e40af;
+}
+
+/* 5. Layout Helpers */
+.container-fluid {
+    width: 100%;
+    padding: 2rem;
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+/* 7. Premium Components */
+.premium-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.premium-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.premium-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #E5E7EB;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 24px;
+}
+
+.premium-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input:checked+.premium-slider {
+    background-color: var(--primary-color);
+}
+
+input:checked+.premium-slider:before {
+    transform: translateX(20px);
+}
+
+/* Setting Rows */
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.setting-info {
+    flex: 1;
+    padding-right: 2rem;
+}
+
+.setting-title {
+    font-weight: 700;
+    color: var(--text-main);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 1rem;
+}
+
+.setting-desc {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+
+/* 6. Dark Mode Overrides */
+body.dark-mode {
+    --bg-light: #0f172a;
+    --white: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    background-color: #0f172a;
+    color: #f1f5f9;
+}
+
+body.dark-mode .sidebar {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+body.dark-mode .nav-link:not(.active) {
+    color: #94a3b8;
+}
+
+body.dark-mode .nav-link:not(.active):hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+body.dark-mode .card,
+body.dark-mode .card-premium,
+body.dark-mode .bg-white {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode .text-slate-900,
+body.dark-mode .text-slate-800 {
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode .text-slate-500,
+body.dark-mode .text-slate-600 {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .bg-slate-50,
+body.dark-mode .bg-gray-50 {
+    background-color: #0f172a !important;
+}
+
+body.dark-mode .border-slate-200 {
+    border-color: #334155 !important;
+}
+
+body.dark-mode .form-control {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+body.dark-mode .form-control:focus {
+    background-color: #0f172a;
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+body.dark-mode .search-container {
+    background-color: #0f172a;
+    border-color: #334155;
+}
+
+body.dark-mode .logo span {
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode .nav-tabs {
+    border-bottom-color: #334155;
+}
+
+body.dark-mode .status-pill.status-active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}

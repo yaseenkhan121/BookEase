@@ -1,0 +1,77 @@
+/* Chart Card Container */
+.chart-card {
+    position: relative;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #edf2f7;
+    height: 350px; /* Increased slightly for better label spacing */
+    width: 100%;
+    transition: box-shadow 0.3s ease;
+}
+
+.chart-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Container for the actual Canvas element */
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+}
+
+/* Tooltip Customization */
+.chart-tooltip {
+    background: #1a202c !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Legend Styling */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+/* Dynamic Legend Colors (Match your Chart.js data colors) */
+.dot-completed { background-color: #1F7A63; }
+.dot-pending   { background-color: #ECC94B; }
+.dot-cancelled { background-color: #F56565; }
+
+/* Placeholder/Empty State */
+.chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #a0aec0;
+    font-style: italic;
+    text-align: center;
+}
