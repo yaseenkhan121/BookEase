@@ -31,9 +31,8 @@ RUN find . -name "*.sh" -exec dos2unix {} \;
 # Create .env file if not present
 RUN if [ ! -f .env ]; then echo "APP_KEY=" > .env; fi
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-RUN php artisan package:discover --ansi 2>/dev/null || true
+# Install PHP dependencies (let post-install scripts run for proper auto-discovery)
+RUN composer install --no-dev --optimize-autoloader
 
 # Install Node.js and build assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
