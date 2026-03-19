@@ -1,63 +1,51 @@
 #!/bin/bash
 
-echo "==> SCRIPT VERSION: 8.0 (Trim everything with PHP)"
+echo "==> SCRIPT VERSION: 9.0 (Regex Character Stripping)"
 echo "==> Preparing application..."
 
-# 0. Strip ALL carriage returns and whitespace from core variables
-echo "==> Sanitizing environment variables..."
-export DATABASE_URL=$(echo "$DATABASE_URL" | tr -d '\r' | xargs)
-export APP_URL=$(echo "$APP_URL" | tr -d '\r' | xargs)
+# 0. Strip ALL hidden characters from the source DATABASE_URL
+echo "==> Sanitizing source environment variables..."
+DATABASE_URL=$(echo "$DATABASE_URL" | tr -d '\r\n\t' | xargs)
 
-# 1. Unset ANY existing DB variables to prevent contamination
-echo "==> Clearing existing DB environment variables..."
+# 1. Clear ANY existing DB variables
 unset DB_CONNECTION DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD
 
 # 2. Clean up caches
 echo "==> Cleaning stale bootstrap caches..."
-rm -f /var/www/html/bootstrap/cache/*.php
+rm -rf /var/www/html/bootstrap/cache/*.php
 rm -rf /var/www/html/storage/framework/cache/data/*
 rm -f /var/www/html/storage/framework/views/*.php
 rm -f /var/www/html/storage/framework/sessions/*
 
 # 3. CREATE FRESH .env file
 echo "==> Creating fresh .env file..."
-# Grab env vars, exclude DB ones, and STRIP \r from everything
 env | grep -v '^DB_' | grep -E '^(APP_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|CACHE_|SESSION_|LOG_|FILESYSTEM_|VITE_)' | tr -d '\r' > /var/www/html/.env
 
-# 4. Use PHP to parse and TRIM DATABASE_URL components (Most reliable)
+# 4. Use PHP with REGEX to parse DATABASE_URL components (The nuclear option)
 if [ -n "$DATABASE_URL" ]; then
-    echo "==> Parsing DATABASE_URL with PHP..."
+    echo "==> Parsing DATABASE_URL with PHP and Regex..."
     
-    DB_HOST=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_HOST));")
-    DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); echo \$p ? trim(\$p) : '5432';")
-    # Path parsing: ltrim the leading slash then trim any trailing junk
-    DB_DATABASE=$(php -r "\$path = parse_url(getenv('DATABASE_URL'), PHP_URL_PATH); echo trim(ltrim(\$path, '/'));")
-    DB_USERNAME=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_USER));")
-    DB_PASSWORD=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_PASS));")
+    export DB_HOST=$(php -r "\$h = parse_url(getenv('DATABASE_URL'), PHP_URL_HOST); echo preg_replace('/[^a-zA-Z0-9_.-]/', '', \$h);")
+    export DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); \$p = \$p ? \$p : '5432'; echo preg_replace('/[^0-9]/', '', \$p);")
+    export DB_DATABASE=$(php -r "\$path = parse_url(getenv('DATABASE_URL'), PHP_URL_PATH); \$db = ltrim(\$path, '/'); echo preg_replace('/[^a-zA-Z0-9_-]/', '', \$db);")
+    export DB_USERNAME=$(php -r "\$u = parse_url(getenv('DATABASE_URL'), PHP_URL_USER); echo preg_replace('/[^a-zA-Z0-9_-]/', '', \$u);")
+    export DB_PASSWORD=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_PASS));")
 
-    # Extra safety: strip any lingering non-printable chars from DB_DATABASE
-    DB_DATABASE=$(echo "$DB_DATABASE" | tr -cd '[:print:]')
+    # Force write to .env (No extra spaces!)
+    printf "DB_CONNECTION=pgsql\n" >> /var/www/html/.env
+    printf "DB_HOST=%s\n" "$DB_HOST" >> /var/www/html/.env
+    printf "DB_PORT=%s\n" "$DB_PORT" >> /var/www/html/.env
+    printf "DB_DATABASE=%s\n" "$DB_DATABASE" >> /var/www/html/.env
+    printf "DB_USERNAME=%s\n" "$DB_USERNAME" >> /var/www/html/.env
+    printf "DB_PASSWORD=%s\n" "$DB_PASSWORD" >> /var/www/html/.env
+    printf "DATABASE_URL=%s\n" "$DATABASE_URL" >> /var/www/html/.env
 
-    # Force write to .env
-    {
-        echo "DB_CONNECTION=pgsql"
-        echo "DB_HOST=$DB_HOST"
-        echo "DB_PORT=$DB_PORT"
-        echo "DB_DATABASE=$DB_DATABASE"
-        echo "DB_USERNAME=$DB_USERNAME"
-        echo "DB_PASSWORD=$DB_PASSWORD"
-    } >> /var/www/html/.env
-
-    # Export for current process
-    export DB_CONNECTION=pgsql
-    export DB_HOST=$DB_HOST
-    export DB_PORT=$DB_PORT
-    export DB_DATABASE=$DB_DATABASE
-    export DB_USERNAME=$DB_USERNAME
-    export DB_PASSWORD=$DB_PASSWORD
-
-    echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE (Length: ${#DB_DATABASE})"
+    echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE"
 fi
+
+# Print .env for debugging (masking sensitive info)
+echo "==> Final .env configuration (sanitized):"
+cat /var/www/html/.env | sed -E 's/(PASSWORD|SECRET|KEY)=.*$/\1=********/'
 
 # 5. Artisan tasks
 echo "==> Running Artisan maintenance tasks..."
@@ -80,6 +68,5 @@ chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 # 9. Start Services
 echo "==> Starting PHP-FPM..."
 php-fpm -D
-
 echo "==> Starting Nginx..."
 nginx -g "daemon off;"
