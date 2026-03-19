@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     nginx \
+    dos2unix \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd zip pdo pdo_pgsql pdo_mysql
 
@@ -24,11 +25,15 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy project files
 COPY . .
 
-# Create .env file for build process
-RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env
+# Fix Windows line endings for all shell scripts
+RUN find . -name "*.sh" -exec dos2unix {} \;
+
+# Create .env file if not present
+RUN if [ ! -f .env ]; then echo "APP_KEY=" > .env; fi
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+RUN php artisan package:discover --ansi 2>/dev/null || true
 
 # Install Node.js and build assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -39,6 +44,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # Configure Nginx
 COPY conf/nginx.conf /etc/nginx/sites-available/default
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+# Remove default nginx config that conflicts
+RUN rm -f /etc/nginx/sites-enabled/default.bak 2>/dev/null || true
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html
@@ -49,6 +56,7 @@ EXPOSE 80
 
 # Start script
 COPY scripts/start-app.sh /usr/local/bin/start-app.sh
+RUN dos2unix /usr/local/bin/start-app.sh
 RUN chmod +x /usr/local/bin/start-app.sh
 
 CMD ["/usr/local/bin/start-app.sh"]
