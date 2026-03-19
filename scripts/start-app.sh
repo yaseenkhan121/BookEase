@@ -35,6 +35,10 @@ fi
 echo "==> .env file contents:"
 cat /var/www/html/.env
 
+# Forcefully remove stale Laravel discovery caches
+echo "==> Removing stale bootstrap caches..."
+rm -f /var/www/html/bootstrap/cache/*.php
+
 # Clear any old cached config
 echo "==> Clearing cached config..."
 php artisan config:clear 2>/dev/null || true
