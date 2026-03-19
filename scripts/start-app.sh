@@ -1,7 +1,11 @@
 #!/bin/bash
 
-echo "==> SCRIPT VERSION: 5.0 (Definitive PHP Parsing)"
+echo "==> SCRIPT VERSION: 6.0 (Nuclear Option: Unset & PHP Parsing)"
 echo "==> Preparing application..."
+
+# 0. Unset ANY existing DB variables to prevent contamination from Render's auto-injection
+echo "==> Clearing existing DB environment variables..."
+unset DB_CONNECTION DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD
 
 # 1. Clean up ANY existing caches first
 echo "==> Cleaning stale bootstrap caches..."
@@ -12,7 +16,7 @@ rm -f /var/www/html/storage/framework/sessions/*
 
 # 2. CREATE FRESH .env file (Overwrite everything)
 echo "==> Creating fresh .env file..."
-# Grab basic Laravel/App env vars but EXCLUDE any DB_ ones from the host
+# Grab basic Laravel/App env vars but EXCLUDE any DB_ ones from the initial dump
 env | grep -v '^DB_' | grep -E '^(APP_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|CACHE_|SESSION_|LOG_|FILESYSTEM_|VITE_)' > /var/www/html/.env
 
 # 3. Use PHP to parse DATABASE_URL (Most reliable)
@@ -38,6 +42,14 @@ if [ -n "$DATABASE_URL" ]; then
         echo "DB_PASSWORD=$DB_PASSWORD"
         echo "DATABASE_URL=$DATABASE_URL"
     } >> /var/www/html/.env
+
+    # Export them for the current process (artisan commands)
+    export DB_CONNECTION=pgsql
+    export DB_HOST=$DB_HOST
+    export DB_PORT=$DB_PORT
+    export DB_DATABASE=$DB_DATABASE
+    export DB_USERNAME=$DB_USERNAME
+    export DB_PASSWORD=$DB_PASSWORD
 
     echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE"
 fi
