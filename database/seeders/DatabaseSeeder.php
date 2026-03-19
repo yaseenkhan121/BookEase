@@ -9,6 +9,7 @@ use App\Models\Availability;
 use App\Models\Appointment;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
@@ -18,15 +19,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create System Admin
-        User::updateOrCreate(
+        // 1. Create System Admin (Bypass Eloquent for absolute certainty)
+        DB::table('users')->updateOrInsert(
             ['email' => 'admin@bookease.com'],
             [
                 'name'          => 'BookEase Admin',
-                'password'      => 'Admin@2026', // Plain string because User model has 'hashed' cast
-                'role'          => User::ROLE_ADMIN,
-                'status'        => User::STATUS_ACTIVE,
+                'password'      => Hash::make('Admin@2026'),
+                'role'          => 'admin',
+                'status'        => 'active',
                 'is_active'     => true,
+                'created_at'    => now(),
+                'updated_at'    => now(),
             ]
         );
     }

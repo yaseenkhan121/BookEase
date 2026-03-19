@@ -51,7 +51,6 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at'             => 'datetime',
-        'password'                      => 'hashed',
         'role'                          => 'string',
         'google_calendar_token'         => 'encrypted:array',
         'google_calendar_refresh_token' => 'encrypted',
