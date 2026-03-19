@@ -35,9 +35,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 # Configure Nginx
 COPY conf/nginx.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Set permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Expose port
 EXPOSE 80
