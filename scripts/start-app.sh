@@ -31,7 +31,7 @@ if [ -n "$DATABASE_URL" ]; then
     export DB_USERNAME=$(php -r "\$u = parse_url(getenv('DATABASE_URL'), PHP_URL_USER); echo preg_replace('/[^a-zA-Z0-9_-]/', '', \$u);")
     export DB_PASSWORD=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_PASS));")
 
-    # Force write to .env (No extra spaces!)
+    # Force write DB vars to .env
     printf "DB_CONNECTION=pgsql\n" >> /var/www/html/.env
     printf "DB_HOST=%s\n" "$DB_HOST" >> /var/www/html/.env
     printf "DB_PORT=%s\n" "$DB_PORT" >> /var/www/html/.env
@@ -42,6 +42,35 @@ if [ -n "$DATABASE_URL" ]; then
 
     echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE"
 fi
+
+# 4b. Inject CRITICAL env defaults (if not already set by Render dashboard)
+echo "==> Injecting critical env defaults..."
+
+# Session: MUST be cookie on Render (no persistent filesystem)
+grep -q '^SESSION_DRIVER=' /var/www/html/.env || printf "SESSION_DRIVER=cookie\n" >> /var/www/html/.env
+grep -q '^SESSION_SECURE_COOKIE=' /var/www/html/.env || printf "SESSION_SECURE_COOKIE=true\n" >> /var/www/html/.env
+grep -q '^SESSION_SAME_SITE=' /var/www/html/.env || printf "SESSION_SAME_SITE=lax\n" >> /var/www/html/.env
+
+# Logging: stderr for Docker
+grep -q '^LOG_CHANNEL=' /var/www/html/.env || printf "LOG_CHANNEL=stderr\n" >> /var/www/html/.env
+
+# Mail encryption
+grep -q '^MAIL_ENCRYPTION=' /var/www/html/.env || printf "MAIL_ENCRYPTION=tls\n" >> /var/www/html/.env
+grep -q '^MAIL_FROM_ADDRESS=' /var/www/html/.env || printf "MAIL_FROM_ADDRESS=noreply@bookease.com\n" >> /var/www/html/.env
+grep -q '^MAIL_FROM_NAME=' /var/www/html/.env || printf 'MAIL_FROM_NAME="BookEase"\n' >> /var/www/html/.env
+
+# Google OAuth redirect (auto-derive from APP_URL if not set)
+if ! grep -q '^GOOGLE_REDIRECT_URI=' /var/www/html/.env; then
+    APP_URL_VAL=$(grep '^APP_URL=' /var/www/html/.env | cut -d'=' -f2-)
+    if [ -n "$APP_URL_VAL" ]; then
+        printf "GOOGLE_REDIRECT_URI=%s/auth/google/callback\n" "$APP_URL_VAL" >> /var/www/html/.env
+        echo "==> Auto-derived GOOGLE_REDIRECT_URI from APP_URL"
+    fi
+fi
+
+# Cache & Queue
+grep -q '^CACHE_STORE=' /var/www/html/.env || printf "CACHE_STORE=file\n" >> /var/www/html/.env
+grep -q '^QUEUE_CONNECTION=' /var/www/html/.env || printf "QUEUE_CONNECTION=sync\n" >> /var/www/html/.env
 
 # Print .env for debugging (masking sensitive info)
 echo "==> Final .env configuration (sanitized):"
@@ -58,7 +87,11 @@ php artisan view:clear
 echo "==> Creating storage link..."
 php artisan storage:link --force 2>/dev/null || true
 
-# 7. Run migrations and seeders
+# 7. Test database connectivity FIRST
+echo "==> Testing database connectivity..."
+php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'DB OK: ' . DB::connection()->getDatabaseName(); } catch(\Exception \$e) { echo 'DB FAILED: ' . \$e->getMessage(); exit(1); }" 2>&1
+
+# 8. Run migrations and seeders
 echo "==> Running migrations (CLEAN REBUILD WITH CONSOLIDATED SCHEMA)..."
 php artisan migrate:fresh --force 2>&1 || echo "Migration warning: check database logs."
 

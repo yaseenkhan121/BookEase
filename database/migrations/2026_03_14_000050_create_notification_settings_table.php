@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('notification_settings', function (Blueprint $table) {
+        // Consolidated from 'notification_settings' to 'user_settings'
+        Schema::create('user_settings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->boolean('booking_notifications')->default(true);
+            $table->boolean('reminder_notifications')->default(true);
             $table->boolean('email_notifications')->default(true);
-            $table->boolean('booking_updates')->default(true);
-            $table->boolean('system_alerts')->default(true);
-            $table->boolean('marketing_emails')->default(false);
             $table->timestamps();
         });
     }
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('notification_settings');
+        Schema::dropIfExists('user_settings');
     }
 };
