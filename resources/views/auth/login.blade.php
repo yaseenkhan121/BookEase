@@ -66,6 +66,16 @@
                     </div>
                 @endif
 
+                @if(session('error'))
+                    <div class="mb-6 p-4 rounded-2xl bg-red-50 text-red-600 text-sm border border-red-100 flex items-start gap-3">
+                        <i class="ph ph-warning-circle mt-1" style="font-size: 1.2rem;"></i>
+                        <div>
+                            <p class="font-bold mb-0">Error</p>
+                            <p class="mb-0">{{ session('error') }}</p>
+                        </div>
+                    </div>
+                @endif
+
                 @if($errors->any())
                     <div class="mb-6 p-4 rounded-2xl bg-red-50 text-red-600 text-sm border border-red-100 flex items-start gap-3">
                         <i class="ph ph-warning-circle mt-1" style="font-size: 1.2rem;"></i>
