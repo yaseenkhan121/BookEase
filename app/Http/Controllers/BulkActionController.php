@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Provider;
 use App\Models\Service;
 use Illuminate\Http\Request;
@@ -37,7 +37,7 @@ class BulkActionController extends Controller
                     case 'providers':
                         return $this->handleProviders($ids, $action);
                     case 'bookings':
-                        return $this->handleBookings($ids, $action);
+                        return $this->handleAppointments($ids, $action);
                     case 'services':
                         return $this->handleServices($ids, $action);
                     default:
@@ -94,35 +94,35 @@ class BulkActionController extends Controller
         return response()->json(['success' => false, 'message' => 'Action not supported for providers.'], 400);
     }
 
-    private function handleBookings(array $ids, string $action)
+    private function handleAppointments(array $ids, string $action)
     {
         $user = Auth::user();
-        $query = Booking::whereIn('id', $ids);
+        $query = Appointment::whereIn('id', $ids);
 
         if ($user->isProvider()) {
             $query->where('provider_id', $user->providerProfile->id);
             if ($action === 'complete') {
-                $query->update(['status' => 'completed']);
-                return response()->json(['success' => true, 'message' => count($ids) . ' bookings completed.']);
+                $query->update(['status' => Appointment::STATUS_COMPLETED]);
+                return response()->json(['success' => true, 'message' => count($ids) . ' appointments completed.']);
             }
             if ($action === 'cancel') {
-                $query->update(['status' => 'cancelled']);
-                return response()->json(['success' => true, 'message' => count($ids) . ' bookings cancelled.']);
+                $query->update(['status' => Appointment::STATUS_CANCELLED]);
+                return response()->json(['success' => true, 'message' => count($ids) . ' appointments cancelled.']);
             }
         }
 
         if ($user->isCustomer()) {
             $query->where('customer_id', $user->id);
             if ($action === 'cancel') {
-                $query->update(['status' => 'cancelled']);
-                return response()->json(['success' => true, 'message' => count($ids) . ' bookings cancelled.']);
+                $query->update(['status' => Appointment::STATUS_CANCELLED]);
+                return response()->json(['success' => true, 'message' => count($ids) . ' appointments cancelled.']);
             }
         }
 
         if ($user->isAdmin()) {
             if ($action === 'delete') {
                 $query->delete();
-                return response()->json(['success' => true, 'message' => count($ids) . ' bookings deleted.']);
+                return response()->json(['success' => true, 'message' => count($ids) . ' appointments deleted.']);
             }
         }
 

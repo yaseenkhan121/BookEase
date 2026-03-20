@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Provider;
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -68,7 +68,7 @@ class UserManagementController extends Controller
 
         $user->load('providerProfile');
 
-        $bookingsCount = Booking::where('customer_id', $user->id)->count();
+        $bookingsCount = Appointment::where('customer_id', $user->id)->count();
         $servicesCount = 0;
         $providerSetup = null;
 
@@ -146,7 +146,7 @@ class UserManagementController extends Controller
         Log::info("Admin [{$this->adminName()}] updated user #{$user->id} ({$user->email})");
 
         // Notify user of profile update
-        $user->notify(new \App\Notifications\BookingNotification(
+        $user->notify(new \App\Notifications\AppointmentNotification(
             'Account Updated',
             "Your account details have been updated by an administrator.",
             route('settings')
@@ -167,15 +167,15 @@ class UserManagementController extends Controller
         $userEmail = $user->email;
 
         // Cancel active bookings
-        Booking::where('customer_id', $user->id)
-            ->whereIn('status', ['pending', 'confirmed'])
+        Appointment::where('customer_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
             ->update(['status' => 'cancelled']);
 
         // If provider, soft-delete their services and cancel their appointments
         if ($user->isProvider() && $user->providerProfile) {
             Service::where('provider_id', $user->providerProfile->id)->delete();
-            Booking::where('provider_id', $user->providerProfile->id)
-                ->whereIn('status', ['pending', 'confirmed'])
+            Appointment::where('provider_id', $user->providerProfile->id)
+                ->whereIn('status', ['pending', 'approved'])
                 ->update(['status' => 'cancelled']);
             $user->providerProfile->delete();
         }

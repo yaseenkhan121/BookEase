@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\Provider;
-use App\Services\BookingService;
+use App\Services\AppointmentService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\View\View;
@@ -15,23 +15,23 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 
-class BookingController extends Controller
+class AppointmentController extends Controller
 {
-    protected $bookingService;
+    protected $appointmentService;
 
-    public function __construct(BookingService $service)
+    public function __construct(AppointmentService $service)
     {
-        $this->bookingService = $service;
+        $this->appointmentService = $service;
     }
 
     /**
-     * Display a listing of bookings based on user role.
+     * Display a listing of appointments based on user role.
      */
     public function index(): View
     {
         $user = Auth::user();
 
-        $query = Booking::with(['service', 'provider', 'customer']);
+        $query = Appointment::with(['service', 'provider', 'customer']);
 
         if ($user->role === 'provider') {
             $query->where('provider_id', $user->providerProfile->id);
@@ -45,13 +45,13 @@ class BookingController extends Controller
     }
 
     /**
-     * Display the specified booking details.
+     * Display the specified appointment details.
      */
-    public function show(Booking $appointment): View
+    public function show(Appointment $appointment): View
     {
         $user = Auth::user();
 
-        // Security: Ensure user only sees their own bookings (unless Admin)
+        // Security: Ensure user only sees their own appointments (unless Admin)
         if (!$user->isAdmin()) {
             if ($user->isProvider() && $user->providerProfile->id !== $appointment->provider_id) {
                 abort(403);
@@ -89,7 +89,6 @@ class BookingController extends Controller
 
     /**
      * AJAX: Get available time slots for a provider on a specific date.
-     * Step 4 of the booking flow.
      */
     public function getAvailableSlots(Request $request): JsonResponse
     {
@@ -101,15 +100,15 @@ class BookingController extends Controller
 
         $service = Service::findOrFail($request->service_id);
 
-        $slots = $this->bookingService->getAvailableSlots(
+        $slots = $this->appointmentService->getAvailableSlots(
             $request->provider_id,
             $request->date,
-            $service->duration_minutes
+            $service->duration
         );
 
         return response()->json([
             'slots' => $slots,
-            'service_duration' => $service->duration_minutes,
+            'service_duration' => $service->duration,
         ]);
     }
 
@@ -120,7 +119,7 @@ class BookingController extends Controller
     {
         $user = Auth::user();
 
-        $bookings = Booking::with(['service', 'customer', 'provider'])
+        $appointments = Appointment::with(['service', 'customer', 'provider'])
             ->whereNested(function ($query) use ($user) {
                 if ($user->role === 'provider' && $user->providerProfile) {
                     $query->where('provider_id', $user->providerProfile->id);
@@ -130,9 +129,9 @@ class BookingController extends Controller
             })
             ->get();
 
-        $events = $bookings->map(fn($b) => [
+        $events = $appointments->map(fn($b) => [
             'id'    => $b->id,
-            'title' => ($b->service->name ?? 'Service') . " - " . ($b->customer->name ?? 'User'),
+            'title' => ($b->service->service_name ?? 'Service') . " - " . ($b->customer->name ?? 'User'),
             'start' => Carbon::parse($b->start_time)->toIso8601String(),
             'end'   => Carbon::parse($b->end_time)->toIso8601String(),
             'backgroundColor' => $this->getStatusColor($b->status),
@@ -140,7 +139,7 @@ class BookingController extends Controller
             'extendedProps' => [
                 'status'   => ucfirst($b->status),
                 'customer' => $b->customer->name ?? 'N/A',
-                'service'  => $b->service->name ?? 'N/A',
+                'service'  => $b->service->service_name ?? 'N/A',
             ],
         ]);
 
@@ -148,8 +147,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Handle the creation of a new booking.
-     * Step 5: Double-booking prevention with DB transaction.
+     * Handle the creation of a new appointment.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -166,7 +164,7 @@ class BookingController extends Controller
         try {
             $service = Service::findOrFail($request->service_id);
             $startTime = Carbon::parse($request->date . ' ' . $request->time);
-            $endTime = $startTime->copy()->addMinutes($service->duration_minutes);
+            $endTime = $startTime->copy()->addMinutes($service->duration);
 
             // Verify provider is approved
             $provider = Provider::findOrFail($request->provider_id);
@@ -174,31 +172,29 @@ class BookingController extends Controller
                 return back()->withInput()->with('error', 'This provider is not currently accepting bookings.');
             }
 
-            $booking = DB::transaction(function () use ($request, $service, $startTime, $endTime) {
+            $appointment = DB::transaction(function () use ($request, $service, $startTime, $endTime) {
                 // Double-booking prevention: atomic check
-                if (!$this->bookingService->isSlotAvailable($request->provider_id, $startTime, $endTime)) {
+                if (!$this->appointmentService->isSlotAvailable($request->provider_id, $startTime, $endTime)) {
                     throw new \Exception('The selected time slot is no longer available. Please choose another time.');
                 }
 
-                return Booking::create([
+                return Appointment::create([
                     'customer_id'    => Auth::id(),
-                    'customer_name'  => $request->customer_name,
-                    'customer_phone' => $request->customer_phone,
                     'provider_id'    => $request->provider_id,
                     'service_id'     => $service->id,
                     'start_time'     => $startTime,
                     'end_time'       => $endTime,
-                    'status'         => Booking::STATUS_PENDING,
+                    'status'         => Appointment::STATUS_PENDING,
                     'notes'          => $request->notes,
                     'price'          => $service->price,
                 ]);
             });
 
-            // Step 6: Notify provider
-            if ($booking->provider && $booking->provider->user) {
-                $booking->provider->user->notify(new \App\Notifications\BookingNotification(
+            // Notify provider
+            if ($appointment->provider && $appointment->provider->user) {
+                $appointment->provider->user->notify(new \App\Notifications\AppointmentNotification(
                     'New Booking Request',
-                    "You have a new booking from {$request->customer_name} for {$service->name}.",
+                    "You have a new booking from {$request->customer_name} for {$service->service_name}.",
                     route('bookings.index')
                 ));
             }
@@ -211,23 +207,22 @@ class BookingController extends Controller
     }
 
     /**
-     * Update the status of a booking (Provider/Admin action).
-     * Step 7 & 8: Status change with customer notification.
+     * Update the status of an appointment.
      */
-    public function updateStatus(Request $request, Booking $appointment): RedirectResponse|JsonResponse
+    public function updateStatus(Request $request, Appointment $appointment): RedirectResponse|JsonResponse
     {
         if (Auth::user()->isProvider() && Auth::user()->providerProfile && Auth::user()->providerProfile->id !== $appointment->provider_id) {
             abort(403, 'Unauthorized action.');
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'in:confirmed,rejected,completed,cancelled,in_progress'],
+            'status' => ['required', 'in:approved,rejected,completed,cancelled'],
         ]);
 
         $appointment->update(['status' => $validated['status']]);
 
-        // Step 10: Sync to Google Calendar on confirmation (Background Job)
-        if ($validated['status'] === 'confirmed') {
+        // Sync to Google Calendar on confirmation (Background Job)
+        if ($validated['status'] === 'approved') {
             \App\Jobs\SyncGoogleCalendarEvent::dispatch($appointment);
         }
 
@@ -236,53 +231,53 @@ class BookingController extends Controller
             \App\Jobs\DeleteGoogleCalendarEvent::dispatch($appointment);
         }
 
-        // Step 8: Notify customer
+        // Notify customer
         if ($appointment->customer) {
             $statusLabel = ucfirst($validated['status']);
-            $appointment->customer->notify(new \App\Notifications\BookingNotification(
+            $appointment->customer->notify(new \App\Notifications\AppointmentNotification(
                 "Booking {$statusLabel}",
-                "Your booking for {$appointment->service->name} has been {$validated['status']}.",
+                "Your booking for {$appointment->service->service_name} has been {$validated['status']}.",
                 route('bookings.index')
             ));
         }
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Booking marked as ' . ucfirst($validated['status']) . '.']);
+            return response()->json(['success' => true, 'message' => 'Appointment marked as ' . ucfirst($validated['status']) . '.']);
         }
 
-        return back()->with('success', "Booking marked as " . ucfirst($validated['status']) . ".");
+        return back()->with('success', "Appointment marked as " . ucfirst($validated['status']) . ".");
     }
 
     /**
-     * Cancel a booking (Customer side).
+     * Cancel an appointment (Customer side).
      */
-    public function destroy(Booking $appointment): RedirectResponse
+    public function destroy(Appointment $appointment): RedirectResponse
     {
         $user = Auth::user();
         if ($user->id !== $appointment->customer_id && !$user->isAdmin()) {
             abort(403);
         }
 
-        $appointment->update(['status' => Booking::STATUS_CANCELLED]);
+        $appointment->update(['status' => Appointment::STATUS_CANCELLED]);
         
         // Remove from Google Calendar (Background Job)
         \App\Jobs\DeleteGoogleCalendarEvent::dispatch($appointment);
+        
         if ($appointment->provider && $appointment->provider->user) {
-            $appointment->provider->user->notify(new \App\Notifications\BookingNotification(
+            $appointment->provider->user->notify(new \App\Notifications\AppointmentNotification(
                 'Booking Cancelled',
-                "The booking for {$appointment->service->name} with {$appointment->customer->name} has been cancelled.",
+                "The booking for {$appointment->service->service_name} with {$appointment->customer->name} has been cancelled.",
                 route('bookings.index')
             ));
         }
 
-        return back()->with('success', 'Booking cancelled successfully.');
+        return back()->with('success', 'Appointment cancelled successfully.');
     }
 
     /**
-     * Reschedule an existing booking (Customer side).
-     * Step 9: Validate old vs new slot and notify provider.
+     * Reschedule an existing appointment.
      */
-    public function reschedule(Request $request, Booking $appointment): RedirectResponse
+    public function reschedule(Request $request, Appointment $appointment): RedirectResponse
     {
         // 1. Security Check
         if ($appointment->customer_id !== Auth::id()) {
@@ -302,23 +297,11 @@ class BookingController extends Controller
 
         try {
             $newStartTime = Carbon::parse($request->date . ' ' . $request->time);
-            $duration = $appointment->service->duration_minutes;
+            $duration = $appointment->service->duration;
             $newEndTime = $newStartTime->copy()->addMinutes($duration);
 
             // 4. Double-booking prevention
-            // We must temporarily ignore the CURRENT booking record to avoid "overlapping with itself"
-            /** @var \Illuminate\Database\Query\Builder $availabilityCheck */
-            $isAvailable = !Booking::where('provider_id', $appointment->provider_id)
-                ->where('id', '!=', $appointment->id)
-                ->active()
-                ->whereNested(function ($query) use ($newStartTime, $newEndTime) {
-                    $query->where(function ($q) use ($newStartTime, $newEndTime) {
-                        $q->where('start_time', '<', $newEndTime)
-                            ->where('end_time', '>', $newStartTime);
-                    });
-                })->exists();
-
-            if (!$isAvailable) {
+            if (!$this->appointmentService->isSlotAvailable($appointment->provider_id, $newStartTime, $newEndTime)) {
                 return back()->with('error', 'The selected slot is already booked. Please choose another time.');
             }
 
@@ -327,15 +310,15 @@ class BookingController extends Controller
             $appointment->update([
                 'start_time' => $newStartTime,
                 'end_time'   => $newEndTime,
-                'status'     => Booking::STATUS_PENDING,
+                'status'     => Appointment::STATUS_PENDING,
             ]);
 
             // 6. Notify Provider
             if ($appointment->provider && $appointment->provider->user) {
-                $appointment->provider->user->notify(new \App\Notifications\BookingNotification(
+                $appointment->provider->user->notify(new \App\Notifications\AppointmentNotification(
                     'Appointment Rescheduled',
-                    "Customer {$appointment->customer_name} rescheduled their appointment from {$oldTime} to {$newStartTime->format('M d, g:i A')}.",
-                    route('provider.bookings.index')
+                    "Customer {$appointment->customer->name} rescheduled their appointment from {$oldTime} to {$newStartTime->format('M d, g:i A')}.",
+                    route('bookings.index')
                 ));
             }
 
@@ -352,12 +335,11 @@ class BookingController extends Controller
     private function getStatusColor($status): string
     {
         return match ($status) {
-            'confirmed'   => '#10B981',
+            'approved'    => '#10B981',
             'pending'     => '#F59E0B',
             'rejected'    => '#EF4444',
             'completed'   => '#3B82F6',
             'cancelled'   => '#94A3B8',
-            'in_progress' => '#6366F1',
             default       => '#64748B',
         };
     }

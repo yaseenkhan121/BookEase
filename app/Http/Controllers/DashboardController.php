@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\Provider;
 use App\Models\User;
@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use App\Models\Provider as ProviderModel;
 
 class DashboardController extends Controller
 {
@@ -24,29 +23,29 @@ class DashboardController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
-        $query = Booking::query();
+        $query = Appointment::query();
 
         $stats = Cache::remember("dashboard_stats_{$user->id}_{$user->role}", now()->addMinutes(10), function() use ($user, &$query) {
             if ($user->isAdmin()) {
-                // Consolidated booking stats: 1 query instead of 5
-                $bookingAgg = Booking::selectRaw("
+                // Consolidated appointment stats: 1 query instead of 5
+                $appointmentAgg = Appointment::selectRaw("
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                    SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+                    SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
                     SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
                 ")->first();
 
                 return [
-                    'total_appointments'   => $bookingAgg->total,
+                    'total_appointments'   => $appointmentAgg->total,
                     'total_providers'      => Provider::count(),
                     'total_services'       => Service::count(),
                     'total_customers'      => User::where('role', 'customer')->count(),
-                    'pending_requests'     => $bookingAgg->pending,
-                    'confirmed_bookings'   => $bookingAgg->confirmed,
-                    'completed_bookings'   => $bookingAgg->completed,
-                    'cancelled_bookings'   => $bookingAgg->cancelled,
-                    'running_appointments' => $bookingAgg->confirmed,
+                    'pending_requests'     => $appointmentAgg->pending,
+                    'confirmed_bookings'   => $appointmentAgg->approved,
+                    'completed_bookings'   => $appointmentAgg->completed,
+                    'cancelled_bookings'   => $appointmentAgg->cancelled,
+                    'running_appointments' => $appointmentAgg->approved,
                     'categories'           => Provider::select('business_category')
                         ->whereNotNull('business_category')
                         ->distinct()
@@ -66,11 +65,11 @@ class DashboardController extends Controller
                         'setup_required'       => true,
                     ];
                 } else {
-                    $query = Booking::where('provider_id', $provider->id);
+                    $query = Appointment::where('provider_id', $provider->id);
                     return [
                         'total_appointments'   => (clone $query)->count(),
                         'completed_projects'   => (clone $query)->where('status', 'completed')->count(),
-                        'running_appointments' => (clone $query)->where('status', 'confirmed')->count(),
+                        'running_appointments' => (clone $query)->where('status', 'approved')->count(),
                         'pending_requests'     => (clone $query)->where('status', 'pending')->count(),
                         'average_rating'       => $provider->average_rating,
                         'total_reviews'        => $provider->total_reviews,
@@ -78,11 +77,11 @@ class DashboardController extends Controller
                 }
             } else {
                 // Customer
-                $query = Booking::where('customer_id', $user->id);
+                $query = Appointment::where('customer_id', $user->id);
                 return [
                     'total_appointments'   => (clone $query)->count(),
                     'completed_projects'   => (clone $query)->where('status', 'completed')->count(),
-                    'running_appointments' => (clone $query)->where('status', 'confirmed')->count(),
+                    'running_appointments' => (clone $query)->where('status', 'approved')->count(),
                     'pending_requests'     => (clone $query)->where('status', 'pending')->count(),
                 ];
             }
@@ -91,7 +90,7 @@ class DashboardController extends Controller
         $upcoming = (clone $query)
             ->with(['service', 'customer', 'provider'])
             ->where('start_time', '>=', now())
-            ->whereIn('status', ['confirmed', 'pending'])
+            ->whereIn('status', ['approved', 'pending'])
             ->orderBy('start_time', 'asc')
             ->limit(5)
             ->get();
@@ -170,28 +169,28 @@ class DashboardController extends Controller
             return view('search.index', ['appointments' => collect(), 'services' => collect(), 'providers' => collect(), 'query' => '']);
         }
 
-        // 1. Bookings Search (Restricted by Role)
-        $bookingsQuery = Booking::with(['service', 'provider', 'customer']);
+        // 1. Appointments Search (Restricted by Role)
+        $appointmentsQuery = Appointment::with(['service', 'provider', 'customer']);
         if ($user->role === 'provider') {
-            $bookingsQuery->where('provider_id', $user->providerProfile->id);
+            $appointmentsQuery->where('provider_id', $user->providerProfile->id);
         } elseif ($user->role === 'customer') {
-            $bookingsQuery->where('customer_id', $user->id);
+            $appointmentsQuery->where('customer_id', $user->id);
         }
-        /** @var \Illuminate\Database\Query\Builder $bookingsQuery */
-        $appointments = $bookingsQuery->where(function ($q) use ($searchTerm) {
+        /** @var \Illuminate\Database\Query\Builder $appointmentsQuery */
+        $appointments = $appointmentsQuery->where(function ($q) use ($searchTerm) {
             $q->where('id', 'LIKE', "%{$searchTerm}%")
               ->orWhereHas('customer', function($query) use ($searchTerm) {
                   $query->where('name', 'LIKE', "%{$searchTerm}%");
               })
               ->orWhereHas('service', function ($sq) use ($searchTerm) {
-                  $sq->where('name', 'LIKE', "%{$searchTerm}%");
+                  $sq->where('service_name', 'LIKE', "%{$searchTerm}%");
               });
         })->latest('start_time')->limit(10)->get();
 
         // 2. Services Search (Only active services)
-        $services = Service::where('status', 'active')
+        $services = Service::where('status', true)
             ->where(function (Builder $q) use ($searchTerm) {
-                $q->where('name', 'LIKE', "%{$searchTerm}%")
+                $q->where('service_name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             })->latest()->limit(10)->get();
 

@@ -2,16 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Availability;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 
-class BookingService
+class AppointmentService
 {
     /**
-     * Check if a provider's time slot is available (no overlapping active bookings).
+     * Check if a provider's time slot is available (no overlapping active appointments).
      * Uses the overlap formula: (Start A < End B) AND (End A > Start B)
      */
     public function isSlotAvailable(int $providerId, $startTime, $endTime): bool
@@ -19,8 +19,8 @@ class BookingService
         $startTime = Carbon::parse($startTime);
         $endTime = Carbon::parse($endTime);
 
-        return !Booking::where('provider_id', $providerId)
-            ->active() // Excludes cancelled bookings
+        return !Appointment::where('provider_id', $providerId)
+            ->active() // Excludes cancelled/rejected appointments
             /** @var \Illuminate\Database\Query\Builder $query */
             ->whereNested(function (Builder $query) use ($startTime, $endTime) {
                 $query->where('start_time', '<', $endTime)
@@ -31,12 +31,12 @@ class BookingService
 
     /**
      * Generate available time slots for a provider on a specific date,
-     * based on their availability schedule and existing bookings.
+     * based on their availability schedule and existing appointments.
      *
-     * Step 4 of the booking flow:
+     * Architectural Flow:
      * 1. Fetch provider_availability for the day
-     * 2. Subtract existing bookings
-     * 3. Generate slots based on service duration_minutes
+     * 2. Subtract existing appointments
+     * 3. Generate slots based on service duration
      */
     public function getAvailableSlots(int $providerId, string $date, int $durationMinutes): array
     {
@@ -52,8 +52,8 @@ class BookingService
             return [];
         }
 
-        // 2. Fetch all existing active bookings for this day (single query, in-memory filter)
-        $existingBookings = Booking::where('provider_id', $providerId)
+        // 2. Fetch all existing active appointments for this day
+        $existingAppointments = Appointment::where('provider_id', $providerId)
             ->whereDate('start_time', $date)
             ->active()
             ->get(['start_time', 'end_time']);
@@ -61,11 +61,8 @@ class BookingService
         $availableSlots = [];
 
         foreach ($workingHours as $schedule) {
-            $startStr = $this->formatTime($schedule->start_time);
-            $endStr = $this->formatTime($schedule->end_time);
-
-            $shiftStart = Carbon::parse($date . ' ' . $startStr);
-            $shiftEnd   = Carbon::parse($date . ' ' . $endStr);
+            $shiftStart = Carbon::parse($date . ' ' . $schedule->start_time);
+            $shiftEnd   = Carbon::parse($date . ' ' . $schedule->end_time);
 
             // 3. Generate time slots at intervals matching service duration
             $period = CarbonPeriod::since($shiftStart)
@@ -81,10 +78,10 @@ class BookingService
                     continue;
                 }
 
-                // Filter: Must not overlap with existing bookings
-                $isBooked = $existingBookings->contains(function ($booking) use ($slotStart, $slotEnd) {
-                    $bookStart = Carbon::parse($booking->start_time);
-                    $bookEnd = Carbon::parse($booking->end_time);
+                // Filter: Must not overlap with existing appointments
+                $isBooked = $existingAppointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                    $bookStart = Carbon::parse($appointment->start_time);
+                    $bookEnd = Carbon::parse($appointment->end_time);
                     return $bookStart < $slotEnd && $bookEnd > $slotStart;
                 });
 
@@ -106,7 +103,7 @@ class BookingService
      */
     public function getCompletionRate(int $providerId): int
     {
-        $stats = Booking::where('provider_id', $providerId)
+        $stats = Appointment::where('provider_id', $providerId)
             ->selectRaw('count(*) as total')
             ->selectRaw("count(case when status = 'completed' then 1 end) as completed")
             ->first();
@@ -116,17 +113,5 @@ class BookingService
         }
 
         return (int) round(($stats->completed / $stats->total) * 100);
-    }
-
-    /**
-     * Helper to ensure time is returned as a string.
-     */
-    private function formatTime($time): string
-    {
-        if ($time instanceof Carbon) {
-            return $time->format('H:i:s');
-        }
-
-        return $time ? (string) $time : '00:00:00';
     }
 }

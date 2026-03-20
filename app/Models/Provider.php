@@ -114,11 +114,11 @@ class Provider extends Model
     }
 
     /**
-     * Bookings assigned to this provider.
+     * Appointments assigned to this provider.
      */
-    public function bookings(): HasMany
+    public function appointments(): HasMany
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(Appointment::class);
     }
 
     /**
@@ -163,7 +163,7 @@ class Provider extends Model
               ->orWhere('business_category', 'LIKE', "%{$term}%")
               ->orWhere('specialization', 'LIKE', "%{$term}%")
               ->orWhereHas('services', function($sq) use ($term) {
-                  $sq->where('name', 'LIKE', "%{$term}%");
+                  $sq->where('service_name', 'LIKE', "%{$term}%");
               });
         });
     }
@@ -222,7 +222,7 @@ class Provider extends Model
     public function checkSetupCompletion(): bool
     {
         $hasProfile = !empty($this->bio) && !empty($this->phone) && !empty($this->business_category);
-        $hasService = $this->services()->where('status', 'active')->exists();
+        $hasService = $this->services()->where('status', true)->exists();
         $hasAvailability = $this->availabilities()->exists();
 
         $completed = $hasProfile && $hasService && $hasAvailability;

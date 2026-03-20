@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,26 +17,26 @@ class ReviewController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'booking_id'  => 'required|exists:bookings,id',
+            'appointment_id'  => 'required|exists:appointments,id',
             'rating'      => 'required|integer|min:1|max:5',
             'review_text' => 'nullable|string|max:1000',
         ]);
 
-        $booking = Booking::findOrFail($request->booking_id);
+        $appointment = Appointment::findOrFail($request->appointment_id);
 
         // Security & Business Rules
         // 1. Must belong to the user
-        if ($booking->customer_id !== auth()->id()) {
+        if ($appointment->customer_id !== auth()->id()) {
             return back()->with('error', 'You can only review your own bookings.');
         }
 
         // 2. Must be completed
-        if ($booking->status !== Booking::STATUS_COMPLETED) {
+        if ($appointment->status !== Appointment::STATUS_COMPLETED) {
             return back()->with('error', 'You can only review completed appointments.');
         }
 
         // 3. Prevent duplicate reviews
-        if ($booking->review()->exists()) {
+        if ($appointment->review()->exists()) {
             return back()->with('error', 'You have already reviewed this appointment.');
         }
 
@@ -44,18 +44,18 @@ class ReviewController extends Controller
             DB::beginTransaction();
 
             $review = Review::create([
-                'booking_id'  => $booking->id,
-                'customer_id' => auth()->id(),
-                'provider_id' => $booking->provider_id,
-                'rating'      => $request->rating,
-                'review_text' => $request->review_text,
+                'appointment_id'  => $appointment->id,
+                'customer_id'     => auth()->id(),
+                'provider_id'     => $appointment->provider_id,
+                'rating'          => $request->rating,
+                'review_text'     => $request->review_text,
             ]);
 
             // Recalculate and cache provider rating
-            $booking->provider->recalculateRating();
+            $appointment->provider->recalculateRating();
 
             // Notify provider
-            $booking->provider->user->notify(new ReviewReceived($review));
+            $appointment->provider->user->notify(new ReviewReceived($review));
 
             DB::commit();
 

@@ -12,7 +12,7 @@ use App\Http\Controllers\Auth\Provider\ProviderController;
 use App\Http\Controllers\Auth\Provider\ServiceController as ProviderServiceController;
 use App\Http\Controllers\Auth\Provider\AvailabilityController;
 use App\Http\Controllers\Auth\Provider\ProviderProfileController;
-use App\Http\Controllers\BookingController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -36,7 +36,7 @@ Route::get('/pricing', function () { return view('welcome'); })->name('pricing')
 Route::group(['prefix' => 'api/v1', 'as' => 'api.'], function () {
     Route::get('/providers/{provider}/services', [ProviderController::class, 'getServices'])->name('provider.services');
     Route::get('/slots', [SlotController::class, 'getSlots'])->name('slots');
-    Route::get('/available-slots', [BookingController::class, 'getAvailableSlots'])->name('available-slots');
+    Route::get('/available-slots', [AppointmentController::class, 'getAvailableSlots'])->name('available-slots');
 });
 
 Route::middleware(['guest'])->group(function () {
@@ -157,19 +157,19 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/calendar/disconnect', [\App\Http\Controllers\Auth\Provider\GoogleCalendarController::class, 'disconnect'])->name('calendar.disconnect');
 
         // Bookings & Calendar
-        Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
-        Route::patch('/bookings/{appointment}/status', [BookingController::class, 'updateStatus'])->name('bookings.update-status');
+        Route::get('/bookings', [AppointmentController::class, 'index'])->name('bookings.index');
+        Route::patch('/bookings/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('bookings.update-status');
     });
 
     // Unified Bookings Management (Shared)
-    Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
-    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
-    Route::get('/bookings/new', [BookingController::class, 'newFlow'])->name('bookings.new');
-    Route::get('/bookings/create/{provider}/{service}', [BookingController::class, 'create'])->name('bookings.create');
-    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
-    Route::get('/bookings/{appointment}', [BookingController::class, 'show'])->name('bookings.show');
-    Route::post('/bookings/{appointment}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
-    Route::delete('/bookings/{appointment}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::get('/calendar', [AppointmentController::class, 'calendar'])->name('calendar');
+    Route::get('/bookings', [AppointmentController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/new', [AppointmentController::class, 'newFlow'])->name('bookings.new');
+    Route::get('/bookings/create/{provider}/{service}', [AppointmentController::class, 'create'])->name('bookings.create');
+    Route::post('/bookings', [AppointmentController::class, 'store'])->name('bookings.store');
+    Route::get('/bookings/{appointment}', [AppointmentController::class, 'show'])->name('bookings.show');
+    Route::post('/bookings/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('bookings.reschedule');
+    Route::delete('/bookings/{appointment}', [AppointmentController::class, 'destroy'])->name('bookings.destroy');
 
     // Customer Google Calendar Routes
     Route::get('/calendar/google/connect', [\App\Http\Controllers\Customer\GoogleCalendarController::class, 'connect'])->name('customer.calendar.connect');
@@ -202,7 +202,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/providers/{user}/toggle-status', [UserManagementController::class, 'toggleProviderStatus'])->name('providers.toggle-status');
         
         // System Wide Bookings
-        Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+        Route::get('/bookings', [AppointmentController::class, 'index'])->name('bookings.index');
     });
 
 });

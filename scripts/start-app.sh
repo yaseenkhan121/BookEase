@@ -69,7 +69,12 @@ php artisan db:seed --force 2>&1 || echo "Seeding warning: check database logs."
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # 9. Start Services
-echo "==> Starting PHP-FPM..."
-php-fpm -D
-echo "==> Starting Nginx..."
+PORT="${PORT:-80}"
+echo "==> Configuring Nginx to listen on port $PORT..."
+sed -i "s/listen 80;/listen ${PORT};/g" /etc/nginx/sites-available/default
+
+echo "==> Starting PHP-FPM in background..."
+php-fpm &
+
+echo "==> Starting Nginx in foreground..."
 nginx -g "daemon off;"

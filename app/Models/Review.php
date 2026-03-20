@@ -13,7 +13,7 @@ class Review extends Model
     protected $fillable = [
         'customer_id',
         'provider_id',
-        'booking_id',
+        'appointment_id',
         'rating',
         'review_text',
     ];
@@ -35,10 +35,10 @@ class Review extends Model
     }
 
     /**
-     * The booking associated with this review.
+     * The appointment associated with this review.
      */
-    public function booking(): BelongsTo
+    public function appointment(): BelongsTo
     {
-        return $this->belongsTo(Booking::class);
+        return $this->belongsTo(Appointment::class);
     }
 }

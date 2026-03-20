@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Services\GoogleCalendarService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,14 +14,14 @@ class DeleteGoogleCalendarEvent implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $booking;
+    protected $appointment;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Booking $booking)
+    public function __construct(Appointment $appointment)
     {
-        $this->booking = $booking;
+        $this->appointment = $appointment;
     }
 
     /**
@@ -30,9 +30,9 @@ class DeleteGoogleCalendarEvent implements ShouldQueue
     public function handle(GoogleCalendarService $calendarService): void
     {
         // 1. Remove from Provider's Calendar
-        $calendarService->deleteEvent($this->booking);
+        $calendarService->deleteEvent($this->appointment);
 
         // 2. Remove from Customer's Calendar
-        $calendarService->deleteEventForCustomer($this->booking);
+        $calendarService->deleteEventForCustomer($this->appointment);
     }
 }

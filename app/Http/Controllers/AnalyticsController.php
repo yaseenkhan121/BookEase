@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\Provider;
 use App\Models\User;
@@ -39,16 +39,16 @@ class AnalyticsController extends Controller
      */
     private function getAdminAnalytics(): array
     {
-        // Bookings last 7 days chart
+        // Appointments last 7 days chart
         $days = collect(range(6, 0))->map(fn($i) => Carbon::now()->subDays($i)->format('Y-m-d'));
-        $bookingCounts = Booking::where('created_at', '>=', now()->subDays(7))
+        $appointmentCounts = Appointment::where('created_at', '>=', now()->subDays(7))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->groupBy('date')
             ->pluck('count', 'date');
 
         $chartData = [
             'labels' => $days->map(fn($date) => Carbon::parse($date)->format('D'))->toArray(),
-            'values' => $days->map(fn($date) => $bookingCounts->get($date) ?? 0)->toArray(),
+            'values' => $days->map(fn($date) => $appointmentCounts->get($date) ?? 0)->toArray(),
         ];
 
         // Provider growth (last 7 days)
@@ -64,7 +64,7 @@ class AnalyticsController extends Controller
         ];
 
         // Revenue Trend (last 7 days)
-        $revenueCounts = Booking::where('status', 'completed')
+        $revenueCounts = Appointment::where('status', 'completed')
             ->where('created_at', '>=', now()->subDays(7))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(price) as total'))
             ->groupBy('date')
@@ -100,9 +100,9 @@ class AnalyticsController extends Controller
             ];
         }
 
-        // Bookings over time (last 7 days)
+        // Appointments over time (last 7 days)
         $days = collect(range(6, 0))->map(fn($i) => Carbon::now()->subDays($i)->format('Y-m-d'));
-        $bookingCounts = Booking::where('provider_id', $provider->id)
+        $appointmentCounts = Appointment::where('provider_id', $provider->id)
             ->where('created_at', '>=', now()->subDays(7))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->groupBy('date')
@@ -110,23 +110,23 @@ class AnalyticsController extends Controller
 
         $chartData = [
             'labels' => $days->map(fn($date) => Carbon::parse($date)->format('D'))->toArray(),
-            'values' => $days->map(fn($date) => $bookingCounts->get($date) ?? 0)->toArray(),
+            'values' => $days->map(fn($date) => $appointmentCounts->get($date) ?? 0)->toArray(),
         ];
 
-        // Service performance (bookings per service)
+        // Service performance (appointments per service)
         $servicePerformanceData = Service::where('provider_id', $provider->id)
-            ->withCount('bookings')
-            ->orderBy('bookings_count', 'desc')
+            ->withCount('appointments')
+            ->orderBy('appointments_count', 'desc')
             ->limit(5)
             ->get();
 
         $serviceChart = [
-            'labels' => $servicePerformanceData->pluck('name')->toArray(),
-            'values' => $servicePerformanceData->pluck('bookings_count')->toArray(),
+            'labels' => $servicePerformanceData->pluck('service_name')->toArray(),
+            'values' => $servicePerformanceData->pluck('appointments_count')->toArray(),
         ];
 
         // Earnings Trend (last 7 days)
-        $earningsCounts = Booking::where('provider_id', $provider->id)
+        $earningsCounts = Appointment::where('provider_id', $provider->id)
             ->where('status', 'completed')
             ->where('created_at', '>=', now()->subDays(7))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(price) as total'))
@@ -151,9 +151,9 @@ class AnalyticsController extends Controller
      */
     private function getCustomerAnalytics(User $user): array
     {
-        // Booking activity (last 7 days)
+        // Appointment activity (last 7 days)
         $days = collect(range(6, 0))->map(fn($i) => Carbon::now()->subDays($i)->format('Y-m-d'));
-        $bookingCounts = Booking::where('customer_id', $user->id)
+        $appointmentCounts = Appointment::where('customer_id', $user->id)
             ->where('created_at', '>=', now()->subDays(7))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->groupBy('date')
@@ -161,7 +161,7 @@ class AnalyticsController extends Controller
 
         $chartData = [
             'labels' => $days->map(fn($date) => Carbon::parse($date)->format('D'))->toArray(),
-            'values' => $days->map(fn($date) => $bookingCounts->get($date) ?? 0)->toArray(),
+            'values' => $days->map(fn($date) => $appointmentCounts->get($date) ?? 0)->toArray(),
         ];
 
         return [

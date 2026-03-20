@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Booking;
+use App\Models\Appointment;
 use App\Services\GoogleCalendarService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,14 +14,14 @@ class SyncGoogleCalendarEvent implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $booking;
+    protected $appointment;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Booking $booking)
+    public function __construct(Appointment $appointment)
     {
-        $this->booking = $booking;
+        $this->appointment = $appointment;
     }
 
     /**
@@ -30,9 +30,9 @@ class SyncGoogleCalendarEvent implements ShouldQueue
     public function handle(GoogleCalendarService $calendarService): void
     {
         // 1. Sync to Provider's Calendar
-        $calendarService->createEvent($this->booking);
+        $calendarService->createEvent($this->appointment);
 
         // 2. Sync to Customer's Calendar
-        $calendarService->createEventForCustomer($this->booking);
+        $calendarService->createEventForCustomer($this->appointment);
     }
 }

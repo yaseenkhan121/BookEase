@@ -27,7 +27,8 @@ class SmsChannel
             return;
         }
 
-        $message = $notification->toSms($notifiable);
+        // Use dynamic method call to avoid IDE warning for unknown method on base Notification class
+        $message = $notification->{'toSms'}($notifiable);
         $to = $notifiable->routeNotificationFor('sms', $notification);
 
         if (!$to) {

@@ -56,7 +56,7 @@ class ServiceController extends Controller
         }
 
         $services = $query->orderBy('status', 'asc')
-            ->orderBy('name', 'asc')
+            ->orderBy('service_name', 'asc')
             ->paginate(10);
 
         return view('services.index', compact('services', 'provider'));
@@ -79,13 +79,13 @@ class ServiceController extends Controller
         $user = Auth::user();
         
         $validated = $request->validate([
-            'name' => [
+            'service_name' => [
                 'required', 
                 'string', 
                 'max:255',
                 function ($attribute, $value, $fail) use ($request, $user) {
                     $providerId = $user->isAdmin() ? $request->provider_id : Provider::where('email', $user->email)->value('id');
-                    if (Service::where('provider_id', $providerId)->where('name', $value)->exists()) {
+                    if (Service::where('provider_id', $providerId)->where('service_name', $value)->exists()) {
                         $fail('This service name is already taken for the selected provider.');
                     }
                 }
@@ -101,9 +101,6 @@ class ServiceController extends Controller
             $provider = Provider::where('email', $user->email)->firstOrFail();
             $validated['provider_id'] = $provider->id;
         }
-
-        $validated['duration_minutes'] = $validated['duration'];
-        unset($validated['duration']);
 
         // Convert status string to boolean (Migration 2026_03_18_214802)
         $validated['status'] = $validated['status'] === 'active';
@@ -139,14 +136,14 @@ class ServiceController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'name' => [
+            'service_name' => [
                 'required', 
                 'string', 
                 'max:255',
                 function ($attribute, $value, $fail) use ($request, $user, $service) {
                     $providerId = $user->isAdmin() ? $request->provider_id : $service->provider_id;
                     if (Service::where('provider_id', $providerId)
-                        ->where('name', $value)
+                        ->where('service_name', $value)
                         ->where('id', '!=', $service->id)
                         ->exists()) {
                         $fail('This service name is already taken for the selected provider.');
@@ -160,8 +157,6 @@ class ServiceController extends Controller
             'provider_id'  => $user->isAdmin() ? ['required', 'exists:providers,id'] : ['nullable']
         ]);
 
-        $validated['duration_minutes'] = $validated['duration'];
-        unset($validated['duration']);
 
         // Convert status string to boolean (Migration 2026_03_18_214802)
         $validated['status'] = $validated['status'] === 'active';

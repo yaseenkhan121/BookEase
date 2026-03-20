@@ -110,11 +110,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Bookings made by this customer.
+     * Appointments made by this customer.
      */
-    public function bookings(): HasMany
+    public function appointments(): HasMany
     {
-        return $this->hasMany(Booking::class, 'customer_id');
+        return $this->hasMany(Appointment::class, 'customer_id');
     }
 
     /**
@@ -128,9 +128,9 @@ class User extends Authenticatable
     /**
      * Legacy relationship alias for backward compatibility.
      */
-    public function appointments(): HasMany
+    public function oldAppointments(): HasMany
     {
-        return $this->bookings();
+        return $this->appointments();
     }
 
     /*

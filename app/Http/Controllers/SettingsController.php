@@ -352,11 +352,11 @@ class SettingsController extends Controller
                 if ($provider) {
                     \App\Models\Service::where('provider_id', $provider->id)->delete();
                     \App\Models\Availability::where('provider_id', $provider->id)->delete();
-                    \App\Models\Booking::where('provider_id', $provider->id)->delete();
+                    \App\Models\Appointment::where('provider_id', $provider->id)->delete();
                     $provider->delete();
                 }
             } elseif ($user->role === 'customer') {
-                \App\Models\Booking::where('customer_id', $user->id)->delete();
+                \App\Models\Appointment::where('customer_id', $user->id)->delete();
             }
 
             UserSetting::where('user_id', $user->id)->delete();

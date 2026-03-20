@@ -32,6 +32,7 @@ return new class extends Migration {
             /**
              * Status flags
              */
+            $table->string('status')->default('active')->index();
             $table->boolean('is_active')->default(true);
             
             $table->rememberToken();

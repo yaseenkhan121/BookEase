@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Provider;
-use App\Models\Booking;
+use App\Models\Appointment;
 use Google\Client as Google_Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
@@ -90,12 +90,12 @@ class GoogleCalendarService
     /**
      * Creates an event on the Provider's Google Calendar
      */
-    public function createEvent(Booking $booking)
+    public function createEvent(Appointment $appointment)
     {
         // Load relationships
-        $booking->loadMissing(['customer', 'service', 'provider']);
+        $appointment->loadMissing(['customer', 'service', 'provider']);
         
-        $provider = $booking->provider;
+        $provider = $appointment->provider;
 
         if (!$this->authenticateProvider($provider)) {
             return null; // Not connected or auth failed
@@ -103,22 +103,22 @@ class GoogleCalendarService
 
         $service = new Calendar($this->client);
         $event = new Event([
-            'summary' => $booking->service->name . ' with ' . $booking->customer->name,
+            'summary' => $appointment->service->service_name . ' with ' . $appointment->customer->name,
             'description' => "Booking Details:\n\n" .
-                             "Customer: " . $booking->customer->name . "\n" .
-                             "Service: " . $booking->service->name . "\n" .
-                             "Email: " . $booking->customer->email . "\n" .
-                             "Notes: " . ($booking->notes ?? 'None'),
+                             "Customer: " . $appointment->customer->name . "\n" .
+                             "Service: " . $appointment->service->service_name . "\n" .
+                             "Email: " . $appointment->customer->email . "\n" .
+                             "Notes: " . ($appointment->notes ?? 'None'),
             'start' => [
-                'dateTime' => \Carbon\Carbon::parse($booking->start_time)->toRfc3339String(),
+                'dateTime' => \Carbon\Carbon::parse($appointment->start_time)->toRfc3339String(),
                 'timeZone' => config('app.timezone'),
             ],
             'end' => [
-                'dateTime' => \Carbon\Carbon::parse($booking->end_time)->toRfc3339String(),
+                'dateTime' => \Carbon\Carbon::parse($appointment->end_time)->toRfc3339String(),
                 'timeZone' => config('app.timezone'),
             ],
             'attendees' => [
-                ['email' => $booking->customer->email],
+                ['email' => $appointment->customer->email],
                 ['email' => $provider->google_calendar_email],
             ],
             'reminders' => [
@@ -135,7 +135,7 @@ class GoogleCalendarService
             $event = $service->events->insert($calendarId, $event);
             
             // Link the google event ID to our booking
-            $booking->update([
+            $appointment->update([
                 'google_event_id' => $event->getId()
             ]);
 
@@ -150,13 +150,13 @@ class GoogleCalendarService
     /**
      * Deletes an event from the Provider's Google Calendar if the booking is cancelled
      */
-    public function deleteEvent(Booking $booking)
+    public function deleteEvent(Appointment $appointment)
     {
-        if (!$booking->google_event_id) {
+        if (!$appointment->google_event_id) {
             return;
         }
 
-        $provider = $booking->provider;
+        $provider = $appointment->provider;
 
         if (!$this->authenticateProvider($provider)) {
             return;
@@ -165,8 +165,8 @@ class GoogleCalendarService
         $service = new Calendar($this->client);
 
         try {
-            $service->events->delete('primary', $booking->google_event_id);
-            $booking->update(['google_event_id' => null]);
+            $service->events->delete('primary', $appointment->google_event_id);
+            $appointment->update(['google_event_id' => null]);
         } catch (\Exception $e) {
             Log::error('Google Calendar Event Deletion Failed: ' . $e->getMessage());
         }
@@ -174,15 +174,12 @@ class GoogleCalendarService
 
     /**
      * Creates an event specifically on the Customer's connected Google Calendar.
-     * The provider method links it to `google_event_id`. For the customer, we can link it
-     * to `customer_google_event_id` or just skip linking since customers are the ones receiving the service.
-     * But to keep it simple, we just create the event.
      */
-    public function createEventForCustomer(Booking $booking)
+    public function createEventForCustomer(Appointment $appointment)
     {
-        $booking->loadMissing(['customer', 'service', 'provider']);
+        $appointment->loadMissing(['customer', 'service', 'provider']);
         
-        $customer = $booking->customer;
+        $customer = $appointment->customer;
 
         if (!$customer || !$this->authenticateCustomer($customer)) {
             return null;
@@ -190,17 +187,17 @@ class GoogleCalendarService
 
         $service = new Calendar($this->client);
         $event = new Event([
-            'summary' => $booking->service->name . ' with ' . ($booking->provider->business_name ?? $booking->provider->name),
+            'summary' => $appointment->service->service_name . ' with ' . ($appointment->provider->business_name ?? $appointment->provider->name),
             'description' => "Booking Details:\n\n" .
-                             "Provider: " . ($booking->provider->business_name ?? $booking->provider->name) . "\n" .
-                             "Service: " . $booking->service->name . "\n" .
-                             "Notes: " . ($booking->notes ?? 'None'),
+                             "Provider: " . ($appointment->provider->business_name ?? $appointment->provider->name) . "\n" .
+                             "Service: " . $appointment->service->service_name . "\n" .
+                             "Notes: " . ($appointment->notes ?? 'None'),
             'start' => [
-                'dateTime' => \Carbon\Carbon::parse($booking->start_time)->toRfc3339String(),
+                'dateTime' => \Carbon\Carbon::parse($appointment->start_time)->toRfc3339String(),
                 'timeZone' => config('app.timezone'),
             ],
             'end' => [
-                'dateTime' => \Carbon\Carbon::parse($booking->end_time)->toRfc3339String(),
+                'dateTime' => \Carbon\Carbon::parse($appointment->end_time)->toRfc3339String(),
                 'timeZone' => config('app.timezone'),
             ],
             'reminders' => [
@@ -212,7 +209,7 @@ class GoogleCalendarService
             $event = $service->events->insert('primary', $event);
             
             // We can optionally store this if added to the Database (customer_google_event_id)
-            $booking->update(['customer_google_event_id' => $event->getId()]);
+            $appointment->update(['customer_google_event_id' => $event->getId()]);
             return $event;
             
         } catch (\Exception $e) {
@@ -221,13 +218,13 @@ class GoogleCalendarService
         }
     }
 
-    public function deleteEventForCustomer(Booking $booking)
+    public function deleteEventForCustomer(Appointment $appointment)
     {
-        if (!$booking->customer_google_event_id) {
+        if (!$appointment->customer_google_event_id) {
             return;
         }
 
-        $customer = $booking->customer;
+        $customer = $appointment->customer;
 
         if (!$customer || !$this->authenticateCustomer($customer)) {
             return;
@@ -236,8 +233,8 @@ class GoogleCalendarService
         $service = new Calendar($this->client);
 
         try {
-            $service->events->delete('primary', $booking->customer_google_event_id);
-            $booking->update(['customer_google_event_id' => null]);
+            $service->events->delete('primary', $appointment->customer_google_event_id);
+            $appointment->update(['customer_google_event_id' => null]);
         } catch (\Exception $e) {
             Log::error('Customer Google Calendar Deletion Failed: ' . $e->getMessage());
         }

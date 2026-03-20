@@ -15,17 +15,17 @@ class Service extends Model
 
     protected $fillable = [
         'provider_id',
-        'name',
+        'service_name',
         'description',
-        'duration_minutes',
+        'duration',
         'price',
         'status',
     ];
 
     protected $casts = [
-        'price'            => 'decimal:2',
-        'duration_minutes' => 'integer',
-        'status'           => 'boolean',
+        'price'    => 'decimal:2',
+        'duration' => 'integer',
+        'status'   => 'boolean',
     ];
 
     protected $attributes = [
@@ -45,9 +45,9 @@ class Service extends Model
         return $this->belongsTo(Provider::class);
     }
 
-    public function bookings(): HasMany
+    public function appointments(): HasMany
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(Appointment::class);
     }
 
     /*
@@ -64,7 +64,7 @@ class Service extends Model
     public function scopeSearch(Builder $query, string $term): Builder
     {
         return $query->whereNested(function (Builder $q) use ($term) {
-            $q->where('name', 'LIKE', "%{$term}%")
+            $q->where('service_name', 'LIKE', "%{$term}%")
               ->orWhereHas('provider', function (Builder $p) use ($term) {
                   $p->where('owner_name', 'LIKE', "%{$term}%")
                     ->orWhere('business_name', 'LIKE', "%{$term}%");
@@ -85,19 +85,14 @@ class Service extends Model
 
     public function getReadableDurationAttribute(): string
     {
-        if ($this->duration_minutes < 60) {
-            return "{$this->duration_minutes} mins";
+        if ($this->duration < 60) {
+            return "{$this->duration} mins";
         }
 
-        $hours = floor($this->duration_minutes / 60);
-        $minutes = $this->duration_minutes % 60;
+        $hours = floor($this->duration / 60);
+        $minutes = $this->duration % 60;
 
         return $minutes > 0 ? "{$hours}h {$minutes}m" : "{$hours} hour(s)";
-    }
-
-    public function getDurationAttribute(): int
-    {
-        return $this->duration_minutes;
     }
 
     public function getStatusClassAttribute(): string
