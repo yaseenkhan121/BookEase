@@ -11,10 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('providers', function (Blueprint $table) {
-            // Standardize status to lower case and specify enum values
-            $table->string('status')->default('pending')->change();
-        });
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE providers ALTER COLUMN status TYPE VARCHAR(255)");
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE providers ALTER COLUMN status SET DEFAULT 'pending'");
+        } else {
+            Schema::table('providers', function (Blueprint $table) {
+                $table->string('status')->default('pending')->change();
+            });
+        }
     }
 
     /**
@@ -22,8 +26,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('providers', function (Blueprint $table) {
-            $table->string('status')->default('Pending')->change();
-        });
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE providers ALTER COLUMN status TYPE VARCHAR(255)");
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE providers ALTER COLUMN status SET DEFAULT 'Pending'");
+        } else {
+            Schema::table('providers', function (Blueprint $table) {
+                $table->string('status')->default('Pending')->change();
+            });
+        }
     }
 };

@@ -13,10 +13,6 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('provider')->nullable()->after('google_id');
-            // If profile_image exists, we might want to rename it back to avatar to be 100% compliant with the prompt
-            if (Schema::hasColumn('users', 'profile_image')) {
-                $table->renameColumn('profile_image', 'avatar');
-            }
         });
     }
 

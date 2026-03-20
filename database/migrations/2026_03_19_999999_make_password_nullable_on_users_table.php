@@ -12,10 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         if (Schema::hasTable('users')) {
-            Schema::table('users', function (Blueprint $table) {
-                // Support OAuth users by making password nullable
-                $table->string('password')->nullable()->change();
-            });
+            if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
+                \Illuminate\Support\Facades\DB::statement('ALTER TABLE users MODIFY password VARCHAR(255) NULL');
+            } elseif (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+                \Illuminate\Support\Facades\DB::statement('ALTER TABLE users ALTER COLUMN password DROP NOT NULL');
+            } else {
+                Schema::table('users', function (Blueprint $table) {
+                    $table->string('password')->nullable()->change();
+                });
+            }
         }
     }
 
@@ -25,9 +30,15 @@ return new class extends Migration
     public function down(): void
     {
         if (Schema::hasTable('users')) {
-            Schema::table('users', function (Blueprint $table) {
-                $table->string('password')->nullable(false)->change();
-            });
+            if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
+                \Illuminate\Support\Facades\DB::statement('ALTER TABLE users MODIFY password VARCHAR(255) NOT NULL');
+            } elseif (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+                \Illuminate\Support\Facades\DB::statement('ALTER TABLE users ALTER COLUMN password SET NOT NULL');
+            } else {
+                Schema::table('users', function (Blueprint $table) {
+                    $table->string('password')->nullable(false)->change();
+                });
+            }
         }
     }
 };
