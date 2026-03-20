@@ -14,14 +14,23 @@ return new class extends Migration
     {
         // 1. If status_new exists (from failed run), rename it to status using atomic CHANGE
         if (Schema::hasColumn('providers', 'status_new') && !Schema::hasColumn('providers', 'status')) {
-            DB::statement("ALTER TABLE providers CHANGE status_new status ENUM('pending', 'approved', 'rejected', 'suspended') NOT NULL DEFAULT 'pending'");
+            if (DB::connection()->getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE providers CHANGE status_new status ENUM('pending', 'approved', 'rejected', 'suspended') NOT NULL DEFAULT 'pending'");
+            } elseif (DB::connection()->getDriverName() === 'pgsql') {
+                DB::statement("ALTER TABLE providers RENAME COLUMN status_new TO status");
+                DB::statement("ALTER TABLE providers ALTER COLUMN status TYPE VARCHAR(255)");
+                DB::statement("ALTER TABLE providers ALTER COLUMN status SET DEFAULT 'pending'");
+            }
         }
 
         // 2. If status exists as string, change it to Enum
         if (Schema::hasColumn('providers', 'status')) {
-             // Already done by step 1 if status_new existed
-             // But if we are starting fresh and 'status' is a string:
-             DB::statement("ALTER TABLE providers MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'suspended') NOT NULL DEFAULT 'pending'");
+            if (DB::connection()->getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE providers MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'suspended') NOT NULL DEFAULT 'pending'");
+            } elseif (DB::connection()->getDriverName() === 'pgsql') {
+                DB::statement("ALTER TABLE providers ALTER COLUMN status TYPE VARCHAR(255)");
+                DB::statement("ALTER TABLE providers ALTER COLUMN status SET DEFAULT 'pending'");
+            }
         }
     }
 
@@ -30,6 +39,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE providers MODIFY COLUMN status VARCHAR(255) DEFAULT 'pending'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE providers MODIFY COLUMN status VARCHAR(255) DEFAULT 'pending'");
+        } elseif (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE providers ALTER COLUMN status TYPE VARCHAR(255)");
+            DB::statement("ALTER TABLE providers ALTER COLUMN status SET DEFAULT 'pending'");
+        }
     }
 };

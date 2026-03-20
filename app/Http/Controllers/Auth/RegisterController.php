@@ -76,8 +76,13 @@ class RegisterController extends Controller
                 return $user;
             });
 
-            // Trigger Laravel's standard verification mailer
-            event(new Registered($user));
+            // Trigger Laravel's standard verification mailer safely
+            try {
+                event(new Registered($user));
+            } catch (\Exception $mailException) {
+                \Illuminate\Support\Facades\Log::error('Registration Email Failed: ' . $mailException->getMessage());
+                // Continue registration process even if email fails
+            }
 
             // 4. Role-Based Redirection & Messaging
             if ($user->role === 'provider') {

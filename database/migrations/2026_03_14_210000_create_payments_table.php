@@ -32,9 +32,14 @@ return new class extends Migration
         // Add pending_payment status to bookings
         // The column is already enum, we need to update it
         if (Schema::hasTable('bookings')) {
-            \Illuminate\Support\Facades\DB::statement(
-                "ALTER TABLE bookings MODIFY COLUMN status ENUM('pending','pending_payment','confirmed','in_progress','completed','cancelled','rejected','approved') DEFAULT 'pending'"
-            );
+            if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
+                \Illuminate\Support\Facades\DB::statement(
+                    "ALTER TABLE bookings MODIFY COLUMN status ENUM('pending','pending_payment','confirmed','in_progress','completed','cancelled','rejected','approved') DEFAULT 'pending'"
+                );
+            } elseif (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE bookings ALTER COLUMN status TYPE VARCHAR(255)");
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE bookings ALTER COLUMN status SET DEFAULT 'pending'");
+            }
         }
     }
 
