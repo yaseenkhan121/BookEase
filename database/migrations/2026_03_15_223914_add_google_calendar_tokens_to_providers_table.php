@@ -1,34 +1,7 @@
 <?php
-
+// NO-OP: Google calendar columns already in base create_providers_table migration.
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::table('providers', function (Blueprint $table) {
-            $table->text('google_calendar_token')->nullable()->after('status');
-            $table->text('google_calendar_refresh_token')->nullable()->after('google_calendar_token');
-            $table->string('google_calendar_email')->nullable()->after('google_calendar_refresh_token');
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('providers', function (Blueprint $table) {
-            $table->dropColumn([
-                'google_calendar_token',
-                'google_calendar_refresh_token',
-                'google_calendar_email'
-            ]);
-        });
-    }
+return new class extends Migration {
+    public function up(): void { }
+    public function down(): void { }
 };

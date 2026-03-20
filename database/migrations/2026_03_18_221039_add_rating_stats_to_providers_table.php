@@ -1,29 +1,7 @@
 <?php
-
+// NO-OP: Rating stats already in base create_providers_table migration.
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::table('providers', function (Blueprint $table) {
-            $table->decimal('average_rating', 3, 2)->default(0.00)->after('bio');
-            $table->unsignedInteger('total_reviews')->default(0)->after('average_rating');
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('providers', function (Blueprint $table) {
-            $table->dropColumn(['average_rating', 'total_reviews']);
-        });
-    }
+return new class extends Migration {
+    public function up(): void { }
+    public function down(): void { }
 };

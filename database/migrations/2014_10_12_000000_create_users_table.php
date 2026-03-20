@@ -14,27 +14,26 @@ return new class extends Migration {
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            
-            /**
-             * Role Management
-             * Added index because we filter by 'role' in nearly every controller.
-             */
-            $table->string('role')->default('customer')->index(); 
-            
-            /**
-             * Profile & Identity
-             * Renamed 'profile_picture' to 'avatar' to match our User model.
-             */
-            $table->string('avatar')->nullable();
-            $table->string('phone_number')->nullable();
-            
-            /**
-             * Status flags
-             */
+            $table->string('password')->nullable(); // Nullable for OAuth users
+
+            // OAuth
+            $table->string('google_id')->nullable()->unique();
+            $table->string('provider')->nullable(); // e.g. 'google'
+
+            // Role & Status
+            $table->string('role')->default('customer')->index();
             $table->string('status')->default('active')->index();
-            $table->boolean('is_active')->default(true);
-            
+
+            // Profile
+            $table->string('profile_image')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('theme_preference')->default('light');
+
+            // Google Calendar Integration
+            $table->text('google_calendar_token')->nullable();
+            $table->string('google_calendar_refresh_token')->nullable();
+            $table->string('google_calendar_email')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });

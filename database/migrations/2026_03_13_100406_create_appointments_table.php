@@ -6,37 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('appointments', function (Blueprint $table) {
+        // Create directly as 'bookings' (was 'appointments', renamed in transform migration)
+        Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            
-            // Unified Architecture: customer is linked to users table, provider is linked to providers table
             $table->foreignId('customer_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('provider_id')->constrained('providers')->onDelete('cascade');
             $table->foreignId('service_id')->constrained('services')->onDelete('cascade');
-            
-            // Time columns
+            $table->string('customer_name')->nullable();
+            $table->string('customer_phone')->nullable();
             $table->dateTime('start_time');
             $table->dateTime('end_time');
-            
-            // Status and tracking
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed', 'cancelled'])->default('pending');
+            $table->string('status')->default('pending');
             $table->text('notes')->nullable();
             $table->decimal('price', 10, 2)->default(0.00);
-            
+            $table->string('google_event_id')->nullable();
+            $table->string('customer_google_event_id')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('appointments');
+        Schema::dropIfExists('bookings');
     }
 };
