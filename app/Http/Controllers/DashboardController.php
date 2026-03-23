@@ -183,14 +183,14 @@ class DashboardController extends Controller
                   $query->where('name', 'LIKE', "%{$searchTerm}%");
               })
               ->orWhereHas('service', function ($sq) use ($searchTerm) {
-                  $sq->where('service_name', 'LIKE', "%{$searchTerm}%");
+                  $sq->where('name', 'LIKE', "%{$searchTerm}%");
               });
         })->latest('start_time')->limit(10)->get();
 
         // 2. Services Search (Only active services)
         $services = Service::where('status', true)
             ->where(function (Builder $q) use ($searchTerm) {
-                $q->where('service_name', 'LIKE', "%{$searchTerm}%")
+                $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             })->latest()->limit(10)->get();
 

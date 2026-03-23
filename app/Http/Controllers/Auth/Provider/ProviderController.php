@@ -41,7 +41,7 @@ class ProviderController extends Controller
                   ->orWhere('city',          'LIKE', "%{$search}%")
                   ->orWhereHas('services', function ($sq) use ($search) {
                       $sq->where('status', 1)
-                         ->where('service_name', 'LIKE', "%{$search}%");
+                   ->where('name', 'LIKE', "%{$search}%");
                   });
             });
         }
@@ -67,7 +67,7 @@ class ProviderController extends Controller
     {
         $services = $provider->services()
             ->where('status', 1)
-            ->get(['id', 'service_name', 'price', 'duration']);
+            ->get(['id', 'name', 'price', 'duration_minutes']);
 
         return response()->json($services);
     }

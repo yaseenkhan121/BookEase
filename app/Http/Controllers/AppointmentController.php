@@ -103,12 +103,12 @@ class AppointmentController extends Controller
         $slots = $this->appointmentService->getAvailableSlots(
             $request->provider_id,
             $request->date,
-            $service->duration
+            $service->duration_minutes
         );
 
         return response()->json([
             'slots' => $slots,
-            'service_duration' => $service->duration,
+            'service_duration' => $service->duration_minutes,
         ]);
     }
 
@@ -131,7 +131,7 @@ class AppointmentController extends Controller
 
         $events = $appointments->map(fn($b) => [
             'id'    => $b->id,
-            'title' => ($b->service->service_name ?? 'Service') . " - " . ($b->customer->name ?? 'User'),
+            'title' => ($b->service->name ?? 'Service') . " - " . ($b->customer->name ?? 'User'),
             'start' => Carbon::parse($b->start_time)->toIso8601String(),
             'end'   => Carbon::parse($b->end_time)->toIso8601String(),
             'backgroundColor' => $this->getStatusColor($b->status),
@@ -139,7 +139,7 @@ class AppointmentController extends Controller
             'extendedProps' => [
                 'status'   => ucfirst($b->status),
                 'customer' => $b->customer->name ?? 'N/A',
-                'service'  => $b->service->service_name ?? 'N/A',
+                'service'  => $b->service->name ?? 'N/A',
             ],
         ]);
 
@@ -164,7 +164,7 @@ class AppointmentController extends Controller
         try {
             $service = Service::findOrFail($request->service_id);
             $startTime = Carbon::parse($request->date . ' ' . $request->time);
-            $endTime = $startTime->copy()->addMinutes($service->duration);
+            $endTime = $startTime->copy()->addMinutes($service->duration_minutes);
 
             // Verify provider is approved
             $provider = Provider::findOrFail($request->provider_id);
@@ -194,7 +194,7 @@ class AppointmentController extends Controller
             if ($appointment->provider && $appointment->provider->user) {
                 $appointment->provider->user->notify(new \App\Notifications\AppointmentNotification(
                     'New Booking Request',
-                    "You have a new booking from {$request->customer_name} for {$service->service_name}.",
+                    "You have a new booking from {$request->customer_name} for {$service->name}.",
                     route('bookings.index')
                 ));
             }
@@ -236,7 +236,7 @@ class AppointmentController extends Controller
             $statusLabel = ucfirst($validated['status']);
             $appointment->customer->notify(new \App\Notifications\AppointmentNotification(
                 "Booking {$statusLabel}",
-                "Your booking for {$appointment->service->service_name} has been {$validated['status']}.",
+                "Your booking for {$appointment->service->name} has been {$validated['status']}.",
                 route('bookings.index')
             ));
         }
@@ -266,7 +266,7 @@ class AppointmentController extends Controller
         if ($appointment->provider && $appointment->provider->user) {
             $appointment->provider->user->notify(new \App\Notifications\AppointmentNotification(
                 'Booking Cancelled',
-                "The booking for {$appointment->service->service_name} with {$appointment->customer->name} has been cancelled.",
+                "The booking for {$appointment->service->name} with {$appointment->customer->name} has been cancelled.",
                 route('bookings.index')
             ));
         }
@@ -297,7 +297,7 @@ class AppointmentController extends Controller
 
         try {
             $newStartTime = Carbon::parse($request->date . ' ' . $request->time);
-            $duration = $appointment->service->duration;
+            $duration = $appointment->service->duration_minutes;
             $newEndTime = $newStartTime->copy()->addMinutes($duration);
 
             // 4. Double-booking prevention

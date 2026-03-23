@@ -56,7 +56,7 @@ class ServiceController extends Controller
         }
 
         $services = $query->orderBy('status', 'asc')
-            ->orderBy('service_name', 'asc')
+            ->orderBy('name', 'asc')
             ->paginate(10);
 
         return view('services.index', compact('services', 'provider'));
@@ -79,22 +79,22 @@ class ServiceController extends Controller
         $user = Auth::user();
         
         $validated = $request->validate([
-            'service_name' => [
+            'name' => [
                 'required', 
                 'string', 
                 'max:255',
                 function ($attribute, $value, $fail) use ($request, $user) {
                     $providerId = $user->isAdmin() ? $request->provider_id : Provider::where('email', $user->email)->value('id');
-                    if (Service::where('provider_id', $providerId)->where('service_name', $value)->exists()) {
+                    if (Service::where('provider_id', $providerId)->where('name', $value)->exists()) {
                         $fail('This service name is already taken for the selected provider.');
                     }
                 }
             ],
-            'description'  => ['required', 'string', 'max:1000'],
-            'price'        => ['required', 'numeric', 'min:0'],
-            'duration'     => ['required', 'integer', 'min:5', 'max:480'],
-            'status'       => ['required', 'in:active,inactive'],
-            'provider_id'  => $user->isAdmin() ? ['required', 'exists:providers,id'] : ['nullable']
+            'description'      => ['required', 'string', 'max:1000'],
+            'price'            => ['required', 'numeric', 'min:0'],
+            'duration_minutes' => ['required', 'integer', 'min:5', 'max:480'],
+            'status'           => ['required', 'in:active,inactive'],
+            'provider_id'      => $user->isAdmin() ? ['required', 'exists:providers,id'] : ['nullable']
         ]);
 
         if (!$user->isAdmin()) {
@@ -136,25 +136,25 @@ class ServiceController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'service_name' => [
+            'name' => [
                 'required', 
                 'string', 
                 'max:255',
                 function ($attribute, $value, $fail) use ($request, $user, $service) {
                     $providerId = $user->isAdmin() ? $request->provider_id : $service->provider_id;
                     if (Service::where('provider_id', $providerId)
-                        ->where('service_name', $value)
+                        ->where('name', $value)
                         ->where('id', '!=', $service->id)
                         ->exists()) {
                         $fail('This service name is already taken for the selected provider.');
                     }
                 }
             ],
-            'description'  => ['required', 'string', 'max:1000'],
-            'price'        => ['required', 'numeric', 'min:0'],
-            'duration'     => ['required', 'integer', 'min:5', 'max:480'],
-            'status'       => ['required', 'in:active,inactive'],
-            'provider_id'  => $user->isAdmin() ? ['required', 'exists:providers,id'] : ['nullable']
+            'description'      => ['required', 'string', 'max:1000'],
+            'price'            => ['required', 'numeric', 'min:0'],
+            'duration_minutes' => ['required', 'integer', 'min:5', 'max:480'],
+            'status'           => ['required', 'in:active,inactive'],
+            'provider_id'      => $user->isAdmin() ? ['required', 'exists:providers,id'] : ['nullable']
         ]);
 
 

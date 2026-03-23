@@ -163,7 +163,7 @@ class Provider extends Model
               ->orWhere('business_category', 'LIKE', "%{$term}%")
               ->orWhere('specialization', 'LIKE', "%{$term}%")
               ->orWhereHas('services', function($sq) use ($term) {
-                  $sq->where('service_name', 'LIKE', "%{$term}%");
+                  $sq->where('name', 'LIKE', "%{$term}%");
               });
         });
     }

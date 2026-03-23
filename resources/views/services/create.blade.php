@@ -69,13 +69,13 @@
 
                         <div class="form-group mb-4">
                             <label class="tiny-font font-bold text-slate-500 text-uppercase mb-2">Duration (Minutes)</label>
-                            <select name="duration" class="form-control custom-input @error('duration') is-invalid @enderror" required>
-                                <option value="15" {{ old('duration') == 15 ? 'selected' : '' }}>15 Mins</option>
-                                <option value="30" {{ old('duration', 30) == 30 ? 'selected' : '' }}>30 Mins</option>
-                                <option value="45" {{ old('duration') == 45 ? 'selected' : '' }}>45 Mins</option>
-                                <option value="60" {{ old('duration') == 60 ? 'selected' : '' }}>1 Hour</option>
-                                <option value="90" {{ old('duration') == 90 ? 'selected' : '' }}>1.5 Hours</option>
-                                <option value="120" {{ old('duration') == 120 ? 'selected' : '' }}>2 Hours</option>
+                            <select name="duration_minutes" class="form-control custom-input @error('duration_minutes') is-invalid @enderror" required>
+                                <option value="15" {{ old('duration_minutes') == 15 ? 'selected' : '' }}>15 Mins</option>
+                                <option value="30" {{ old('duration_minutes', 30) == 30 ? 'selected' : '' }}>30 Mins</option>
+                                <option value="45" {{ old('duration_minutes') == 45 ? 'selected' : '' }}>45 Mins</option>
+                                <option value="60" {{ old('duration_minutes') == 60 ? 'selected' : '' }}>1 Hour</option>
+                                <option value="90" {{ old('duration_minutes') == 90 ? 'selected' : '' }}>1.5 Hours</option>
+                                <option value="120" {{ old('duration_minutes') == 120 ? 'selected' : '' }}>2 Hours</option>
                             </select>
                         </div>
 

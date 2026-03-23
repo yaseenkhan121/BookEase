@@ -103,10 +103,10 @@ class GoogleCalendarService
 
         $service = new Calendar($this->client);
         $event = new Event([
-            'summary' => $appointment->service->service_name . ' with ' . $appointment->customer->name,
+            'summary' => $appointment->service->name . ' with ' . $appointment->customer->name,
             'description' => "Booking Details:\n\n" .
                              "Customer: " . $appointment->customer->name . "\n" .
-                             "Service: " . $appointment->service->service_name . "\n" .
+                             "Service: " . $appointment->service->name . "\n" .
                              "Email: " . $appointment->customer->email . "\n" .
                              "Notes: " . ($appointment->notes ?? 'None'),
             'start' => [
@@ -187,10 +187,10 @@ class GoogleCalendarService
 
         $service = new Calendar($this->client);
         $event = new Event([
-            'summary' => $appointment->service->service_name . ' with ' . ($appointment->provider->business_name ?? $appointment->provider->name),
+            'summary' => $appointment->service->name . ' with ' . ($appointment->provider->business_name ?? $appointment->provider->name),
             'description' => "Booking Details:\n\n" .
                              "Provider: " . ($appointment->provider->business_name ?? $appointment->provider->name) . "\n" .
-                             "Service: " . $appointment->service->service_name . "\n" .
+                             "Service: " . $appointment->service->name . "\n" .
                              "Notes: " . ($appointment->notes ?? 'None'),
             'start' => [
                 'dateTime' => \Carbon\Carbon::parse($appointment->start_time)->toRfc3339String(),

@@ -92,7 +92,7 @@
 
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted"><i class="ph ph-hourglass mr-1"></i> Duration</span>
-                    <span class="font-weight-medium">{{ $service->duration }} mins</span>
+                    <span class="font-weight-medium">{{ $service->duration_minutes }} mins</span>
                 </div>
                 <div class="d-flex justify-content-between mb-4">
                     <span class="text-muted"><i class="ph ph-money mr-1"></i> Total Price</span>

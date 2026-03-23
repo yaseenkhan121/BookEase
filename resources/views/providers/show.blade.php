@@ -139,7 +139,7 @@
                         @forelse ($provider->services as $service)
                             <div class="service-row-card mb-3"
                                  id="service-card-{{ $service->id }}"
-                                 onclick="selectService('{{ $service->id }}', '{{ addslashes($service->name) }}', '{{ number_format($service->price, 0) }}', '{{ $service->duration }}')"
+                                 onclick="selectService('{{ $service->id }}', '{{ addslashes($service->name) }}', '{{ number_format($service->price, 0) }}', '{{ $service->duration_minutes }}')"
                                  style="cursor: pointer;">
 
                                 {{-- Left: icon + info --}}
@@ -155,7 +155,7 @@
                                             <div class="src-desc">{{ Str::limit($service->description, 70) }}</div>
                                         @endif
                                         <span class="src-duration">
-                                            <i class="ph ph-clock"></i> {{ $service->duration }} mins
+                                            <i class="ph ph-clock"></i> {{ $service->duration_minutes }} mins
                                         </span>
                                     </div>
                                 </div>
@@ -164,7 +164,7 @@
                                 <div class="src-cta-col">
                                     <div class="src-price">PKR {{ number_format($service->price, 0) }}</div>
                                     <button class="src-book-btn"
-                                            onclick="event.stopPropagation(); selectService('{{ $service->id }}', '{{ addslashes($service->name) }}', '{{ number_format($service->price, 0) }}', '{{ $service->duration }}')">Book Now</button>
+                                            onclick="event.stopPropagation(); selectService('{{ $service->id }}', '{{ addslashes($service->name) }}', '{{ number_format($service->price, 0) }}', '{{ $service->duration_minutes }}')">Book Now</button>
                                 </div>
 
                             </div>

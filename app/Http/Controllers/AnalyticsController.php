@@ -121,7 +121,7 @@ class AnalyticsController extends Controller
             ->get();
 
         $serviceChart = [
-            'labels' => $servicePerformanceData->pluck('service_name')->toArray(),
+            'labels' => $servicePerformanceData->pluck('name')->toArray(),
             'values' => $servicePerformanceData->pluck('appointments_count')->toArray(),
         ];
 

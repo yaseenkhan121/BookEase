@@ -34,7 +34,7 @@ class SlotController extends Controller
         $availableSlots = $this->appointmentService->getAvailableSlots(
             $request->provider_id,
             $request->date,
-            $service->duration
+            $service->duration_minutes
         );
 
         return response()->json($availableSlots);

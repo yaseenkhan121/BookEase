@@ -39,8 +39,8 @@ class UpdateServiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_name' => ['sometimes', 'required', 'string', 'max:100'],
-            'duration'     => ['sometimes', 'required', 'integer', 'min:5', 'max:480'],
+            'name'             => ['sometimes', 'required', 'string', 'max:100'],
+            'duration_minutes' => ['sometimes', 'required', 'integer', 'min:5', 'max:480'],
             'price'        => ['sometimes', 'required', 'numeric', 'min:0'],
             'description'  => ['nullable', 'string', 'max:1000'],
             'is_active'    => ['sometimes', 'boolean'], // Allow toggling service visibility
@@ -53,8 +53,8 @@ class UpdateServiceRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'service_name' => 'service name',
-            'duration'     => 'service duration',
+            'name'             => 'service name',
+            'duration_minutes' => 'service duration',
             'is_active'    => 'visibility status',
         ];
     }

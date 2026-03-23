@@ -56,7 +56,7 @@
                                 <div class="col-sm-6">
                                     <label class="text-muted small text-uppercase font-weight-bold tracking-widest d-block mb-1">Time</label>
                                     <p class="fw-bold text-dark fs-5 mb-0">{{ $appointment->start_time->format('h:i A') }}</p>
-                                    <p class="text-muted mb-0 small">{{ $appointment->end_time->format('h:i A') }} ({{ $appointment->service->duration ?? 0 }} mins)</p>
+                                    <p class="text-muted mb-0 small">{{ $appointment->end_time->format('h:i A') }} ({{ $appointment->service->duration_minutes ?? 0 }} mins)</p>
                                 </div>
                                 <div class="col-12 pr-md-5">
                                     <div class="p-3 rounded-3 bg-light border-0">

@@ -15,17 +15,17 @@ class Service extends Model
 
     protected $fillable = [
         'provider_id',
-        'service_name',
+        'name',
         'description',
-        'duration',
+        'duration_minutes',
         'price',
         'status',
     ];
 
     protected $casts = [
-        'price'    => 'decimal:2',
-        'duration' => 'integer',
-        'status'   => 'boolean',
+        'price'            => 'decimal:2',
+        'duration_minutes' => 'integer',
+        'status'           => 'boolean',
     ];
 
     protected $attributes = [
@@ -64,7 +64,7 @@ class Service extends Model
     public function scopeSearch(Builder $query, string $term): Builder
     {
         return $query->whereNested(function (Builder $q) use ($term) {
-            $q->where('service_name', 'LIKE', "%{$term}%")
+            $q->where('name', 'LIKE', "%{$term}%")
               ->orWhereHas('provider', function (Builder $p) use ($term) {
                   $p->where('owner_name', 'LIKE', "%{$term}%")
                     ->orWhere('business_name', 'LIKE', "%{$term}%");
@@ -85,12 +85,12 @@ class Service extends Model
 
     public function getReadableDurationAttribute(): string
     {
-        if ($this->duration < 60) {
-            return "{$this->duration} mins";
+        if ($this->duration_minutes < 60) {
+            return "{$this->duration_minutes} mins";
         }
 
-        $hours = floor($this->duration / 60);
-        $minutes = $this->duration % 60;
+        $hours = floor($this->duration_minutes / 60);
+        $minutes = $this->duration_minutes % 60;
 
         return $minutes > 0 ? "{$hours}h {$minutes}m" : "{$hours} hour(s)";
     }
