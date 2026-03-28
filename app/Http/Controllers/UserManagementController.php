@@ -359,7 +359,7 @@ class UserManagementController extends Controller
 
         if ($search = $request->input('search')) {
             /** @var \Illuminate\Database\Query\Builder $query */
-            $query->whereNested(function (Builder $q) use ($search) {
+            $query->whereNested(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });

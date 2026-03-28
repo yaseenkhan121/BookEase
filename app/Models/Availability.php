@@ -75,7 +75,7 @@ class Availability extends Model
     public function scopeOverlapping($query, $startTime, $endTime)
     {
         /** @var \Illuminate\Database\Query\Builder $query */
-        return $query->whereNested(function (Builder $q) use ($startTime, $endTime) {
+        return $query->whereNested(function ($q) use ($startTime, $endTime) {
             $q->where('start_time', '<', $endTime)
               ->where('end_time', '>', $startTime);
         });

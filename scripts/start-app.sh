@@ -25,14 +25,26 @@ env | grep -v '^DB_' | grep -E '^(APP_|GOOGLE_|PUSHER_|MAIL_|BROADCAST_|QUEUE_|C
 if [ -n "$DATABASE_URL" ]; then
     echo "==> Parsing DATABASE_URL with PHP and Regex..."
     
+    # Extract protocol (e.g., mysql:// or postgres://)
+    DB_PROTO=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_SCHEME); echo \$p;")
+    
+    if [[ "$DB_PROTO" == "postgres" || "$DB_PROTO" == "postgresql" ]]; then
+        export DB_CONNECTION="pgsql"
+    elif [[ "$DB_PROTO" == "mysql" ]]; then
+        export DB_CONNECTION="mysql"
+    else
+        # Fallback to pgsql if unknown protocol but URL exists (common on Render)
+        export DB_CONNECTION="pgsql"
+    fi
+
     export DB_HOST=$(php -r "\$h = parse_url(getenv('DATABASE_URL'), PHP_URL_HOST); echo preg_replace('/[^a-zA-Z0-9_.-]/', '', \$h);")
-    export DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); \$p = \$p ? \$p : '5432'; echo preg_replace('/[^0-9]/', '', \$p);")
+    export DB_PORT=$(php -r "\$p = parse_url(getenv('DATABASE_URL'), PHP_URL_PORT); echo preg_replace('/[^0-9]/', '', \$p);")
     export DB_DATABASE=$(php -r "\$path = parse_url(getenv('DATABASE_URL'), PHP_URL_PATH); \$db = ltrim(\$path, '/'); echo preg_replace('/[^a-zA-Z0-9_-]/', '', \$db);")
     export DB_USERNAME=$(php -r "\$u = parse_url(getenv('DATABASE_URL'), PHP_URL_USER); echo preg_replace('/[^a-zA-Z0-9_-]/', '', \$u);")
     export DB_PASSWORD=$(php -r "echo trim(parse_url(getenv('DATABASE_URL'), PHP_URL_PASS));")
 
     # Force write DB vars to .env
-    printf "DB_CONNECTION=pgsql\n" >> /var/www/html/.env
+    printf "DB_CONNECTION=%s\n" "$DB_CONNECTION" >> /var/www/html/.env
     printf "DB_HOST=%s\n" "$DB_HOST" >> /var/www/html/.env
     printf "DB_PORT=%s\n" "$DB_PORT" >> /var/www/html/.env
     printf "DB_DATABASE=%s\n" "$DB_DATABASE" >> /var/www/html/.env
@@ -40,7 +52,7 @@ if [ -n "$DATABASE_URL" ]; then
     printf "DB_PASSWORD=%s\n" "$DB_PASSWORD" >> /var/www/html/.env
     printf "DATABASE_URL=%s\n" "$DATABASE_URL" >> /var/www/html/.env
 
-    echo "==> Connection Configured: Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE"
+    echo "==> Connection Configured: Driver=$DB_CONNECTION, Host=$DB_HOST, Port=$DB_PORT, Database=$DB_DATABASE"
 fi
 
 # 4b. Inject CRITICAL env defaults (if not already set by Render dashboard)

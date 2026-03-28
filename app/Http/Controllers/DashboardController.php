@@ -189,14 +189,14 @@ class DashboardController extends Controller
 
         // 2. Services Search (Only active services)
         $services = Service::where('status', true)
-            ->where(function (Builder $q) use ($searchTerm) {
+            ->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             })->latest()->limit(10)->get();
 
         // 3. Providers Search (Approved only)
         $providers = Provider::approved()
-            ->where(function (Builder $q) use ($searchTerm) {
+            ->where(function ($q) use ($searchTerm) {
                 $q->where('owner_name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('business_name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('specialization', 'LIKE', "%{$searchTerm}%")

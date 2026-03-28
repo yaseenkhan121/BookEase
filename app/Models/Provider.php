@@ -157,7 +157,7 @@ class Provider extends Model
     public function scopeSearch($query, string $term)
     {
         /** @var \Illuminate\Database\Query\Builder $query */
-        return $query->whereNested(function (Builder $q) use ($term) {
+        return $query->whereNested(function ($q) use ($term) {
             $q->where('owner_name', 'LIKE', "%{$term}%")
               ->orWhere('business_name', 'LIKE', "%{$term}%")
               ->orWhere('business_category', 'LIKE', "%{$term}%")

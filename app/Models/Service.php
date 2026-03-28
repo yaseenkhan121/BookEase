@@ -63,9 +63,9 @@ class Service extends Model
 
     public function scopeSearch(Builder $query, string $term): Builder
     {
-        return $query->whereNested(function (Builder $q) use ($term) {
+        return $query->whereNested(function ($q) use ($term) {
             $q->where('name', 'LIKE', "%{$term}%")
-              ->orWhereHas('provider', function (Builder $p) use ($term) {
+              ->orWhereHas('provider', function ($p) use ($term) {
                   $p->where('owner_name', 'LIKE', "%{$term}%")
                     ->orWhere('business_name', 'LIKE', "%{$term}%");
               });

@@ -22,7 +22,7 @@ class AppointmentService
         return !Appointment::where('provider_id', $providerId)
             ->active() // Excludes cancelled/rejected appointments
             /** @var \Illuminate\Database\Query\Builder $query */
-            ->whereNested(function (Builder $query) use ($startTime, $endTime) {
+            ->whereNested(function ($query) use ($startTime, $endTime) {
                 $query->where('start_time', '<', $endTime)
                       ->where('end_time', '>', $startTime);
             })
