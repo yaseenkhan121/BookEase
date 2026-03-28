@@ -170,14 +170,21 @@
     }
 </script>
 <script>
-    // Disable AJAX when email is being changed (OTP redirect is needed)
+    // Disable AJAX when email or phone is being changed (OTP redirect is needed)
     (function() {
         const form = document.getElementById('profileInfoForm');
         const emailInput = form?.querySelector('input[name="email"]');
+        const phoneInput = form?.querySelector('input[name="phone"]');
+        
         const originalEmail = emailInput?.value || '';
-        if (form && emailInput) {
+        const originalPhone = phoneInput?.value || '';
+
+        if (form) {
             form.addEventListener('submit', function(e) {
-                if (emailInput.value !== originalEmail) {
+                const emailChanged = emailInput && emailInput.value !== originalEmail;
+                const phoneChanged = phoneInput && phoneInput.value !== originalPhone;
+                
+                if (emailChanged || phoneChanged) {
                     form.removeAttribute('data-ajax');
                 }
             }, true);

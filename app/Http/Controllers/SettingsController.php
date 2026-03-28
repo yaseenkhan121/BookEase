@@ -39,7 +39,7 @@ class SettingsController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'phone' => 'nullable|string|max:20',
-            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
         ];
 
         if ($user->role === 'provider') {
@@ -150,15 +150,14 @@ class SettingsController extends Controller
         $user = auth()->user();
 
         try {
-            $otpService = app(\App\Services\OtpService::class);
-            $otpService->generate($user, 'password_change', $user->email);
-            
-            session([
-                'pending_password_change' => Hash::make($request->new_password),
-                'otp_purpose' => 'password_change'
-            ]);
+            $user->password = Hash::make($request->new_password);
+            $user->save();
 
-            return redirect()->route('settings.otp.verify')->with('success', 'A verification code has been sent to your registered email address.');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'Password updated successfully.']);
+            }
+
+            return back()->with('success', 'Password updated successfully.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

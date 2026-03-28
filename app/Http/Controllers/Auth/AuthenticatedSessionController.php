@@ -42,11 +42,13 @@ class AuthenticatedSessionController extends Controller
 
             // 4. Check Account Status (Rule-Based Workflow)
             if ($user->isProvider()) {
-                if ($user->status === 'pending') {
+                $status = $user->providerProfile ? $user->providerProfile->status : 'pending';
+                
+                if ($status === 'pending') {
                     Auth::logout();
                     return redirect()->route('login')->with('error', 'Your provider account is waiting for admin approval.');
                 }
-                if ($user->status === 'rejected') {
+                if ($status === 'rejected') {
                     Auth::logout();
                     return redirect()->route('login')->with('error', 'Your provider account request was rejected.');
                 }

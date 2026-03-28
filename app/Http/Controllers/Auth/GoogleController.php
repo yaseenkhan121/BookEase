@@ -90,12 +90,6 @@ class GoogleController extends Controller
      */
     private function redirectBasedOnRole($user)
     {
-        if ($user->isAdmin()) {
-            return redirect()->intended('/admin/dashboard');
-        } elseif ($user->isProvider()) {
-            return redirect()->intended('/provider/dashboard');
-        }
-        
         return redirect()->intended('/dashboard');
     }
 }

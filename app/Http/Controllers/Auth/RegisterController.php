@@ -84,17 +84,12 @@ class RegisterController extends Controller
                 // Continue registration process even if email fails
             }
 
-            // 4. Role-Based Redirection & Messaging
-            if ($user->role === 'provider') {
-                return redirect()->route('login')
-                    ->with('success', 'Your account has been created. Admin approval is required before you can access the provider dashboard.');
-            }
+            // 4. Redirect to Login (No Auto-Login)
+            $message = ($user->role === 'provider') 
+                ? 'Your account has been created. Admin approval is required before you can sign in to your dashboard.'
+                : 'Account created successfully. Please sign in to continue to your dashboard.';
 
-            // 5. Manual Login & Session Management for Customers
-            Auth::login($user);
-            $request->session()->regenerate();
-
-            return redirect()->route('dashboard');
+            return redirect()->route('login')->with('success', $message);
         } catch (\Exception $e) {
             return back()
                 ->withInput()

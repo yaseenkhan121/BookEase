@@ -51,7 +51,7 @@ class RoleSelectionController extends Controller
         }
 
         if ($user->isProvider()) {
-            return redirect('/provider/dashboard')->with('success', 'Your account is ready!');
+            return redirect('/dashboard')->with('success', 'Your account is ready!');
         }
 
         return redirect('/dashboard')->with('success', 'Your account is ready!');

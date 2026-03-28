@@ -58,7 +58,7 @@ class ProviderProfileController extends Controller
             'city'              => ['required', 'string', 'max:100'],
             'country'           => ['required', 'string', 'max:100'],
             'bio'               => ['nullable', 'string', 'max:2000'],
-            'profile_image'     => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+            'profile_image'     => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
         ]);
 
         // Handle Image Upload

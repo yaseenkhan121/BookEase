@@ -19,10 +19,17 @@ class DashboardController extends Controller
     /**
      * Dashboard Home: Role-based stats and analytics.
      */
-    public function index(): View
+    public function index()
     {
-        /** @var User $user */
         $user = Auth::user();
+
+        // 1. Provider Status Protection
+        if ($user->isProvider()) {
+            if (!$user->providerProfile || in_array($user->providerProfile->status, ['pending', 'rejected', 'suspended'])) {
+                return redirect()->route('provider.pending');
+            }
+        }
+
         $query = Appointment::query();
 
         $stats = Cache::remember("dashboard_stats_{$user->id}_{$user->role}", now()->addMinutes(10), function() use ($user, &$query) {
